@@ -22,11 +22,12 @@ export function calculateJointAngle(a,b,c){
   return Math.round(Math.acos(Math.max(-1,Math.min(1,(abx*cbx+aby*cby)/denominator)))*180/Math.PI);
 }
 export function createRepCounter(){return {count:0,phase:null,angle:null,lastCountAt:0};}
-export function analyzePose(landmarks,exerciseId,tracker=createRepCounter(),now=Date.now()){
+export function analyzePose(landmarks,exerciseId,tracker=createRepCounter(),now=Date.now(),aspectRatio=1){
   const config=POSE_EXERCISES[exerciseId];
   if(!config)return {supported:false,visible:false,count:tracker.count,angle:null,phase:tracker.phase,confidence:0,feedback:'Este movimiento no tiene contador automático.'};
   if(!Array.isArray(landmarks)||landmarks.length<29)return {supported:true,visible:false,count:tracker.count,angle:null,phase:tracker.phase,confidence:0,feedback:'Colócate a una distancia que permita ver las articulaciones.'};
-  const candidates=config.joints.map(indices=>{const points=indices.map(index=>landmarks[index]);return {points,score:points.reduce((sum,point)=>sum+confidence(point),0)/points.length};}).sort((a,b)=>b.score-a.score);
+  const safeAspectRatio=Number.isFinite(aspectRatio)&&aspectRatio>0?Math.min(4,Math.max(.25,aspectRatio)):1;
+  const candidates=config.joints.map(indices=>{const points=indices.map(index=>{const point=landmarks[index];return point?{...point,x:point.x*safeAspectRatio}:point;});return {points,score:points.reduce((sum,point)=>sum+confidence(point),0)/points.length};}).sort((a,b)=>b.score-a.score);
   const selected=candidates[0];
   if(!selected||selected.score<VISIBILITY_THRESHOLD)return {supported:true,visible:false,count:tracker.count,angle:null,phase:tracker.phase,confidence:selected?.score||0,feedback:'No se ven bien las articulaciones. Mejora la luz o ajusta el encuadre.'};
   const rawAngle=calculateJointAngle(...selected.points);

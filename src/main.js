@@ -742,7 +742,7 @@ function startPoseLoop() {
       try{
         cameraLastTimestamp=Math.max(performance.now(),cameraLastTimestamp+1);
         const result=cameraPoseLandmarker.detectForVideo(cameraVideo,cameraLastTimestamp),landmarks=result.landmarks?.[0]||null;
-        drawPoseOverlay(landmarks);cameraPoseMetrics=analyzePose(landmarks,cameraExerciseId,cameraRepTracker,Date.now());updateCameraReadouts(cameraPoseMetrics);
+        drawPoseOverlay(landmarks);cameraPoseMetrics=analyzePose(landmarks,cameraExerciseId,cameraRepTracker,Date.now(),cameraVideo.videoWidth/cameraVideo.videoHeight);updateCameraReadouts(cameraPoseMetrics);
       }catch(error){cameraPoseError=error.message||'Error durante el análisis de postura.';updateCameraStatus(cameraPoseError);}
     }
     cameraAnimationFrame=requestAnimationFrame(tick);
