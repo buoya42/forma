@@ -211,3 +211,207 @@ html[data-motion="off"] .onboarding-shell:after,html[data-motion="off"] .onboard
 :root[data-interface="material-expressive"] .nav-button.active{background:linear-gradient(110deg,rgba(121,212,223,.24),rgba(231,139,199,.10));box-shadow:none}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root[data-interface="liquid-glass"]{--surface:rgba(27,44,54,.96)}:root[data-theme="light"][data-interface="liquid-glass"]{--surface:rgba(255,255,255,.97)}}
 @media(prefers-reduced-transparency:reduce){:root[data-interface="liquid-glass"]{--surface:var(--surface-solid)}:root[data-interface="liquid-glass"] .surface,:root[data-interface="liquid-glass"] .icon-button{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
+
+/* Platform design families. These are web-native adaptations of official
+   Apple Liquid Glass and Google Material 3 Expressive guidance. */
+:root[data-interface="liquid-glass"]{
+  --surface:rgba(28,43,55,.58);
+  --surface-solid:rgba(25,42,54,.94);
+  --surface-2:rgba(125,178,194,.13);
+  --line:rgba(224,245,255,.19);
+  --shadow:0 18px 60px rgba(0,0,0,.22);
+  --radius:27px;
+  --glass-stroke:rgba(232,248,255,.24);
+  --glass-highlight:rgba(255,255,255,.17);
+}
+:root[data-theme="light"][data-interface="liquid-glass"]{
+  --surface:rgba(255,255,255,.60);
+  --surface-solid:rgba(250,254,255,.96);
+  --surface-2:rgba(65,135,155,.10);
+  --line:rgba(45,100,120,.18);
+  --shadow:0 18px 55px rgba(35,85,105,.13);
+  --glass-stroke:rgba(255,255,255,.76);
+  --glass-highlight:rgba(255,255,255,.70);
+}
+:root[data-interface="liquid-glass"] body{
+  background:
+    radial-gradient(ellipse at 12% 0%,rgba(112,204,226,.17),transparent 42%),
+    radial-gradient(ellipse at 92% 24%,rgba(178,145,224,.12),transparent 38%),
+    var(--bg);
+}
+:root[data-interface="liquid-glass"] .surface,
+:root[data-interface="liquid-glass"] .metric-card,
+:root[data-interface="liquid-glass"] .hero,
+:root[data-interface="liquid-glass"] .modal-card,
+:root[data-interface="liquid-glass"] .sheet,
+:root[data-interface="liquid-glass"] .mobile-nav,
+:root[data-interface="liquid-glass"] .topbar,
+:root[data-interface="liquid-glass"] .privacy-chip{
+  -webkit-backdrop-filter:saturate(170%) blur(24px);
+  backdrop-filter:saturate(170%) blur(24px);
+  border-color:var(--glass-stroke);
+  box-shadow:inset 0 1px 0 var(--glass-highlight),var(--shadow);
+}
+:root[data-interface="liquid-glass"] .surface,
+:root[data-interface="liquid-glass"] .metric-card,
+:root[data-interface="liquid-glass"] .hero,
+:root[data-interface="liquid-glass"] .modal-card,
+:root[data-interface="liquid-glass"] .sheet{
+  background-image:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.018) 48%,rgba(115,190,212,.045));
+}
+:root[data-interface="liquid-glass"] .button.secondary,
+:root[data-interface="liquid-glass"] .icon-button,
+:root[data-interface="liquid-glass"] .nav-button.active,
+:root[data-interface="liquid-glass"] .check-row{
+  border:1px solid var(--glass-stroke);
+  background-image:linear-gradient(145deg,rgba(255,255,255,.19),rgba(255,255,255,.045));
+  box-shadow:inset 0 1px 0 var(--glass-highlight),0 8px 24px rgba(0,0,0,.08);
+}
+:root[data-interface="liquid-glass"] .button.primary{
+  background-image:linear-gradient(145deg,rgba(255,255,255,.20),transparent 54%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 8px 24px rgba(35,163,178,.24);
+}
+:root[data-interface="liquid-glass"] .modal-card{border-radius:30px}
+:root[data-interface="liquid-glass"] .mobile-nav{
+  background:rgba(19,34,44,.70);
+  border:1px solid rgba(224,245,255,.18);
+}
+:root[data-theme="light"][data-interface="liquid-glass"] .mobile-nav{
+  background:rgba(248,253,255,.72);
+  border-color:rgba(45,100,120,.15);
+}
+@media(hover:hover) and (pointer:fine){
+  :root[data-interface="liquid-glass"] .surface,
+  :root[data-interface="liquid-glass"] .metric-card,
+  :root[data-interface="liquid-glass"] .button.secondary{
+    transition:background-color .24s ease,border-color .24s ease,transform .24s ease,box-shadow .24s ease;
+  }
+  :root[data-interface="liquid-glass"] .surface:hover,
+  :root[data-interface="liquid-glass"] .metric-card:hover{
+    border-color:rgba(224,245,255,.32);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 22px 65px rgba(0,0,0,.24);
+  }
+}
+
+/* Material 3 Expressive: tonal roles, more emphatic shape and spring-like
+   feedback, translated to existing semantic FORMA components. */
+:root[data-interface="material-expressive"]{
+  --radius:30px;
+  --radius-sm:20px;
+  --md-sys-color-primary:#79d4df;
+  --md-sys-color-on-primary:#09252c;
+  --md-sys-color-primary-container:rgba(121,212,223,.19);
+  --md-sys-color-secondary:#e7a5d0;
+  --md-sys-color-surface:rgba(30,48,58,.94);
+  --md-sys-color-surface-container:rgba(43,65,76,.88);
+  --m3-emphasized:cubic-bezier(.2,.8,.2,1);
+}
+:root[data-theme="light"][data-interface="material-expressive"]{
+  --md-sys-color-primary:#187f91;
+  --md-sys-color-on-primary:#fff;
+  --md-sys-color-primary-container:rgba(35,163,178,.14);
+  --md-sys-color-secondary:#a44885;
+  --md-sys-color-surface:rgba(255,255,255,.96);
+  --md-sys-color-surface-container:rgba(234,243,245,.96);
+}
+:root[data-interface="material-expressive"] .surface,
+:root[data-interface="material-expressive"] .metric-card,
+:root[data-interface="material-expressive"] .modal-card,
+:root[data-interface="material-expressive"] .sheet{
+  border-radius:var(--radius);
+  border-color:rgba(121,212,223,.16);
+  background:var(--md-sys-color-surface);
+}
+:root[data-theme="light"][data-interface="material-expressive"] .surface,
+:root[data-theme="light"][data-interface="material-expressive"] .metric-card,
+:root[data-theme="light"][data-interface="material-expressive"] .modal-card,
+:root[data-theme="light"][data-interface="material-expressive"] .sheet{
+  border-color:rgba(24,127,145,.12);
+}
+:root[data-interface="material-expressive"] .hero{
+  border-radius:36px;
+  border:1px solid rgba(121,212,223,.22);
+  background:
+    radial-gradient(ellipse at 88% 12%,rgba(231,139,199,.18),transparent 36%),
+    linear-gradient(130deg,rgba(121,212,223,.16),rgba(121,212,223,.035) 56%),
+    var(--surface);
+}
+:root[data-interface="material-expressive"] .button,
+:root[data-interface="material-expressive"] .nav-button,
+:root[data-interface="material-expressive"] .check-row{
+  border-radius:999px;
+  font-weight:650;
+  transition:transform .22s var(--m3-emphasized),box-shadow .22s var(--m3-emphasized),background-color .22s ease;
+}
+:root[data-interface="material-expressive"] .button.primary{
+  background:var(--accent);
+  color:#09252c;
+  box-shadow:0 4px 0 rgba(13,85,96,.24),0 12px 28px rgba(35,163,178,.18);
+}
+:root[data-interface="material-expressive"] .button:active,
+:root[data-interface="material-expressive"] .nav-button:active{
+  transform:scale(.965);
+}
+:root[data-interface="material-expressive"] .button.secondary,
+:root[data-interface="material-expressive"] .nav-button.active{
+  background:var(--md-sys-color-primary-container);
+  border-color:rgba(121,212,223,.24);
+}
+:root[data-interface="material-expressive"] .nav-button.active{
+  box-shadow:none;
+  font-weight:750;
+}
+:root[data-interface="material-expressive"] .metric-card{
+  background:linear-gradient(155deg,var(--md-sys-color-surface-container),var(--surface));
+}
+:root[data-interface="material-expressive"] .field input,
+:root[data-interface="material-expressive"] .field select,
+:root[data-interface="material-expressive"] .field textarea{
+  border-radius:18px;
+}
+:root[data-interface="material-expressive"] .tag{
+  border-radius:999px;
+  background:var(--md-sys-color-primary-container);
+  border-color:transparent;
+}
+:root[data-interface="material-expressive"] .onboarding-choice{
+  border-radius:22px;
+}
+:root[data-interface="material-expressive"] .onboarding-choice:has(input:checked){
+  border-color:var(--accent);
+  background:var(--md-sys-color-primary-container);
+}
+:root[data-interface="material-expressive"] .mobile-nav{
+  border-radius:28px 28px 0 0;
+}
+@media(prefers-reduced-motion:reduce), (data-motion="off"){
+  :root[data-interface="material-expressive"] .button,
+  :root[data-interface="material-expressive"] .nav-button{
+    transition:none;
+  }
+}
+:root[data-motion="off"][data-interface="material-expressive"] .button:active,
+:root[data-motion="off"][data-interface="material-expressive"] .nav-button:active{
+  transform:none;
+}
+
+/* Fallbacks for browsers that do not implement backdrop filters. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root[data-interface="liquid-glass"]{--surface:rgba(27,44,54,.96)}
+  :root[data-theme="light"][data-interface="liquid-glass"]{--surface:rgba(255,255,255,.97)}
+}
+@media(prefers-reduced-transparency:reduce){
+  :root[data-interface="liquid-glass"]{--surface:var(--surface-solid)}
+  :root[data-interface="liquid-glass"] .surface,
+  :root[data-interface="liquid-glass"] .metric-card,
+  :root[data-interface="liquid-glass"] .hero,
+  :root[data-interface="liquid-glass"] .modal-card,
+  :root[data-interface="liquid-glass"] .sheet,
+  :root[data-interface="liquid-glass"] .mobile-nav,
+  :root[data-interface="liquid-glass"] .topbar{
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    background-image:none;
+  }
+}
