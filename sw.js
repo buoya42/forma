@@ -1,8 +1,8 @@
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 const CACHE = `forma-static-${VERSION}`;
 const CORE = [
   './', './index.html', './manifest.webmanifest', './src/styles.css',
-  './src/main.js', './src/platform.js', './src/pose.js', './src/pose-runtime.js', './src/data.js', './src/storage.js', './src/engine.js',
+  './src/main.js', './src/platform.js', './src/pose.js', './src/pose-runtime.js', './src/pose-worker.js', './src/data.js', './src/storage.js', './src/engine.js',
   './src/gestures.js', './src/reminders.js', './src/migrations.js', './public/icons/icon.svg', './public/icons/dumbbell-mark.svg', './public/icons/icon-192.png',
   './public/icons/icon-512.png', './README.md', './PRIVACY.md',
   './OFFLINE_CAPABILITIES.md', './THIRD_PARTY_LICENSES.md'

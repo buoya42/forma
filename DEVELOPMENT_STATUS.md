@@ -1,5 +1,10 @@
 # FORMA development status
 
+## Delivered in v1.7.1
+
+- Moved synchronous pose inference out of the UI thread into a dedicated module Web Worker, transferring camera frames as ImageBitmap and returning only landmark data for drawing/counting.
+- Added worker syntax validation and service-worker precaching; MediaPipe WASM/model assets remain cacheable for offline use after first download.
+
 ## Delivered in v1.7.0
 
 - Added circuit templates with 1–20 rounds, automatic exercise/round advancement after configured sets and cursor-aware undo.

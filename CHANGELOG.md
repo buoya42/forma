@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1 — 2026-11-09
+- Moved synchronous MediaPipe video inference into a dedicated Web Worker; video frames are transferred as ImageBitmap and only pose landmarks return to the UI thread.
+- Added worker lifecycle handling, frame back-pressure and a versioned offline cache entry for the worker module.
+
 ## 1.7.0 — 2026-11-09
 - Added circuit templates with 1–20 rounds, automatic movement/round advancement after the configured sets and undo that restores the correct circuit cursor.
 - Added skippable guided warm-up and cool-down stages when selected in the workout template.

@@ -96,7 +96,9 @@ let cameraStream = null;
 let onboardingStep = 0;
 let onboardingNotificationsRequested = false;
 let cameraVideo = null;
-let cameraPoseLandmarker = null;
+let cameraPoseWorker = null;
+let cameraPoseWorkerReady = false;
+let cameraPoseFramePending = false;
 let cameraAnimationFrame = null;
 let cameraLastVideoTime = -1;
 let cameraLastInferenceAt = 0;
@@ -202,7 +204,7 @@ function layout(content, title) {
   document.body.dataset.view = view;
   if (modal?.type === 'camera' && cameraStream) {
     const video = root.querySelector('#camera-video');
-    if (video) { if(video.srcObject!==cameraStream)video.srcObject=cameraStream; cameraVideo=video; video.play().catch(()=>{}); if(cameraAnalysisActive&&cameraPoseLandmarker)startPoseLoop(); }
+    if (video) { if(video.srcObject!==cameraStream)video.srcObject=cameraStream; cameraVideo=video; video.play().catch(()=>{}); if(cameraAnalysisActive&&cameraPoseWorkerReady)startPoseLoop(); }
   }
 }
 
@@ -728,8 +730,8 @@ function pausePoseAnalysis() {
 }
 function stopPoseAnalysis() {
   cameraGeneration+=1;pausePoseAnalysis();cameraModelLoading=false;
-  if(cameraPoseLandmarker){try{cameraPoseLandmarker.close();}catch(error){console.warn('No se pudo cerrar el modelo de postura',error);}}
-  cameraPoseLandmarker=null;cameraPoseMetrics=null;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;
+  if(cameraPoseWorker){try{cameraPoseWorker.postMessage({type:'close'});cameraPoseWorker.terminate();}catch(error){console.warn('No se pudo cerrar el worker de postura',error);}}
+  cameraPoseWorker=null;cameraPoseWorkerReady=false;cameraPoseFramePending=false;cameraPoseMetrics=null;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;
 }
 function stopCamera() {
   stopPoseAnalysis();
@@ -765,35 +767,66 @@ function updateCameraReadouts(metrics) {
     if(actions){const button=document.createElement('button');button.className='button primary';button.dataset.action='camera-log-set';button.textContent='Registrar serie · '+cameraRepTracker.count+' reps';actions.append(button);}
   }else if(logButton)logButton.textContent='Registrar serie · '+cameraRepTracker.count+' reps';
 }
+function handlePoseWorkerMessage(worker,data) {
+  if(worker!==cameraPoseWorker)return;
+  if(data.type==='ready'){
+    cameraPoseWorkerReady=true;cameraModelLoading=false;cameraAnalysisActive=true;
+    cameraRepTracker=createRepCounter();cameraPoseMetrics=null;cameraLastVideoTime=-1;cameraLastTimestamp=0;
+    renderPage();startPoseLoop();return;
+  }
+  if(data.type==='error'){
+    cameraPoseFramePending=false;
+    cameraPoseError=data.message||'Error durante el análisis de postura.';
+    if(data.stage==='init'){cameraModelLoading=false;cameraAnalysisActive=false;cameraPoseWorkerReady=false;worker.terminate();cameraPoseWorker=null;}
+    updateCameraStatus(cameraPoseError);return;
+  }
+  if(data.type==='pose'){
+    cameraPoseFramePending=false;
+    if(!cameraAnalysisActive)return;
+    const landmarks=data.landmarks||null;
+    drawPoseOverlay(landmarks);
+    cameraPoseMetrics=analyzePose(landmarks,cameraExerciseId,cameraRepTracker,Date.now(),data.width/data.height,data.worldLandmarks||null);
+    updateCameraReadouts(cameraPoseMetrics);
+  }
+}
 function startPoseLoop() {
-  if(cameraAnimationFrame!==null||!cameraAnalysisActive||!cameraPoseLandmarker||!cameraVideo)return;
-  const tick=now=>{
-    if(!cameraAnalysisActive||!cameraPoseLandmarker||!cameraStream)return;
-    if(cameraVideo?.readyState>=2&&cameraVideo.currentTime!==cameraLastVideoTime&&now-cameraLastInferenceAt>=90){
-      cameraLastVideoTime=cameraVideo.currentTime;cameraLastInferenceAt=now;
+  if(cameraAnimationFrame!==null||!cameraAnalysisActive||!cameraPoseWorkerReady||!cameraVideo)return;
+  const generation=cameraGeneration;
+  const tick=async now=>{
+    if(generation!==cameraGeneration||!cameraAnalysisActive||!cameraPoseWorkerReady||!cameraStream){cameraAnimationFrame=null;return;}
+    if(!cameraPoseFramePending&&cameraVideo?.readyState>=2&&cameraVideo.currentTime!==cameraLastVideoTime&&now-cameraLastInferenceAt>=90){
+      cameraLastVideoTime=cameraVideo.currentTime;cameraLastInferenceAt=now;cameraPoseFramePending=true;
+      cameraLastTimestamp=Math.max(performance.now(),cameraLastTimestamp+1);
       try{
-        cameraLastTimestamp=Math.max(performance.now(),cameraLastTimestamp+1);
-        const result=cameraPoseLandmarker.detectForVideo(cameraVideo,cameraLastTimestamp),landmarks=result.landmarks?.[0]||null;
-        drawPoseOverlay(landmarks);cameraPoseMetrics=analyzePose(landmarks,cameraExerciseId,cameraRepTracker,Date.now(),cameraVideo.videoWidth/cameraVideo.videoHeight,result.worldLandmarks?.[0]);updateCameraReadouts(cameraPoseMetrics);
-      }catch(error){cameraPoseError=error.message||'Error durante el análisis de postura.';updateCameraStatus(cameraPoseError);}
+        const bitmap=await createImageBitmap(cameraVideo);
+        if(generation!==cameraGeneration||!cameraAnalysisActive||!cameraPoseWorkerReady||!cameraPoseWorker){bitmap.close();cameraPoseFramePending=false;}
+        else cameraPoseWorker.postMessage({type:'frame',bitmap,timestamp:cameraLastTimestamp,width:cameraVideo.videoWidth,height:cameraVideo.videoHeight},[bitmap]);
+      }catch(error){cameraPoseFramePending=false;cameraPoseError=error.message||'No se pudo preparar el fotograma.';updateCameraStatus(cameraPoseError);}
     }
-    cameraAnimationFrame=requestAnimationFrame(tick);
+    if(generation===cameraGeneration&&cameraAnalysisActive)cameraAnimationFrame=requestAnimationFrame(tick);
+    else cameraAnimationFrame=null;
   };
   cameraAnimationFrame=requestAnimationFrame(tick);
 }
 async function startPoseAnalysis() {
   if(!cameraStream){toast('Activa la cámara primero.','error');return;}
   if(!cameraMetricsConsent){toast('Necesitas aceptar las métricas técnicas para iniciar MediaPipe.','error');return;}
-  if(cameraPoseLandmarker){cameraAnalysisActive=true;cameraLastVideoTime=-1;renderPage();startPoseLoop();return;}
+  if(cameraPoseWorkerReady){cameraAnalysisActive=true;cameraLastVideoTime=-1;renderPage();startPoseLoop();return;}
   if(cameraModelLoading)return;
-  const generation=++cameraGeneration;cameraModelLoading=true;cameraPoseError='';updateCameraStatus('Descargando el motor de postura y el modelo ligero…');
+  const generation=++cameraGeneration;cameraModelLoading=true;cameraPoseError='';updateCameraStatus('Descargando motor y modelo de postura…');
   try{
-    const landmarker=await createPoseLandmarker();
-    if(generation!==cameraGeneration||!cameraStream||modal?.type!=='camera'){landmarker.close();return;}
-    cameraPoseLandmarker=landmarker;cameraAnalysisActive=true;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;cameraLastTimestamp=0;cameraModelLoading=false;
-    renderPage();startPoseLoop();
+    const worker=new Worker(new URL('./pose-worker.js',import.meta.url),{type:'module'});
+    cameraPoseWorker=worker;cameraPoseWorkerReady=false;
+    worker.onmessage=event=>handlePoseWorkerMessage(worker,event.data||{});
+    worker.onerror=event=>{
+      if(worker!==cameraPoseWorker)return;
+      cameraPoseFramePending=false;cameraModelLoading=false;cameraAnalysisActive=false;cameraPoseWorkerReady=false;
+      cameraPoseError=event.message||'El worker de postura no ha podido iniciarse.';
+      updateCameraStatus(cameraPoseError);worker.terminate();cameraPoseWorker=null;
+    };
+    worker.postMessage({type:'init',generation});
   }catch(error){
-    cameraPoseError='No se pudo cargar el análisis: '+(error.message||error)+'. Comprueba la conexión y vuelve a intentarlo.';
+    cameraPoseError='No se pudo iniciar el análisis en segundo plano: '+(error.message||error);
     cameraModelLoading=false;updateCameraStatus(cameraPoseError);
     const button=root.querySelector('[data-action="camera-analysis-start"]');if(button)button.disabled=false;
   }

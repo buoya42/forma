@@ -1,6 +1,6 @@
 {
   "name": "forma-fitness",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "private": true,
   "type": "module",
   "description": "FORMA — local-first, offline-capable fitness companion",
@@ -9,7 +9,7 @@
     "build": "node scripts/build.mjs",
     "preview": "node scripts/server.mjs --dir dist --port 4173",
     "test": "node --test",
-    "check": "node --check src/main.js && node --check src/pose.js && node --check src/pose-runtime.js && node --check src/platform.js && node --check src/data.js && node --check src/engine.js && node --check src/storage.js && node --check src/gestures.js && node --check src/reminders.js && node --check src/migrations.js && node --check sw.js"
+    "check": "node --check src/main.js && node --check src/pose.js && node --check src/pose-runtime.js && node --check src/pose-worker.js && node --check src/platform.js && node --check src/data.js && node --check src/engine.js && node --check src/storage.js && node --check src/gestures.js && node --check src/reminders.js && node --check src/migrations.js && node --check sw.js"
   },
   "engines": {
     "node": ">=20"
