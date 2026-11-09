@@ -198,21 +198,6 @@ html[data-motion="off"] .onboarding-shell:after,html[data-motion="off"] .onboard
 @media(max-width:560px){.onboarding-art{height:222px;min-height:222px}.onboarding-art-mark{width:94px;height:94px}.onboarding-art-mark img{width:59px;height:59px}.onboarding-orbit.orbit-one{width:140px;height:140px}.onboarding-orbit.orbit-two{width:180px;height:180px}.onboarding-orbit.orbit-three{width:230px;height:155px}.float-card-top{right:3px;top:20px}.float-card-bottom{left:0;bottom:20px}.onboarding-art-label{right:0;bottom:4px}.onboarding-benefits{grid-template-columns:1fr}.onboarding-benefits>div{min-height:62px}.onboarding-actions{align-items:stretch}.onboarding-actions .button{flex:1;min-width:0}.onboarding-primary{min-width:0}.onboarding-step h1{font-size:34px}}
 
 
-/* FORMA interface families — web-native adaptations of official design guidance. */
-:root[data-interface="liquid-glass"]{--surface:rgba(28,43,55,.58);--surface-solid:rgba(25,42,54,.94);--surface-2:rgba(125,178,194,.13);--line:rgba(224,245,255,.19);--shadow:0 18px 60px rgba(0,0,0,.22);--radius:26px}
-:root[data-theme="light"][data-interface="liquid-glass"]{--surface:rgba(255,255,255,.62);--surface-solid:rgba(250,254,255,.96);--surface-2:rgba(65,135,155,.10);--line:rgba(45,100,120,.18);--shadow:0 18px 55px rgba(35,85,105,.13)}
-:root[data-interface="liquid-glass"] .surface,:root[data-interface="liquid-glass"] .icon-button,:root[data-interface="liquid-glass"] .nav-button.active,:root[data-interface="liquid-glass"] .privacy-chip,:root[data-interface="liquid-glass"] .modal-card{-webkit-backdrop-filter:saturate(165%) blur(22px);backdrop-filter:saturate(165%) blur(22px);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),var(--shadow)}
-:root[data-interface="liquid-glass"] .nav-button.active,:root[data-interface="liquid-glass"] .icon-button{background:linear-gradient(145deg,rgba(255,255,255,.17),rgba(255,255,255,.045))}
-:root[data-interface="material-expressive"]{--radius:30px;--radius-sm:20px;--surface:rgba(30,48,58,.94);--surface-2:rgba(121,212,223,.12)}
-:root[data-theme="light"][data-interface="material-expressive"]{--surface:rgba(255,255,255,.96);--surface-2:rgba(35,163,178,.10)}
-:root[data-interface="material-expressive"] .surface,:root[data-interface="material-expressive"] .privacy-chip{border-radius:30px}
-:root[data-interface="material-expressive"] .button,:root[data-interface="material-expressive"] .nav-button,:root[data-interface="material-expressive"] .check-row{border-radius:999px}
-:root[data-interface="material-expressive"] .button.primary{box-shadow:0 5px 0 rgba(13,85,96,.24),0 12px 28px rgba(35,163,178,.18)}
-:root[data-interface="material-expressive"] .nav-button.active{background:linear-gradient(110deg,rgba(121,212,223,.24),rgba(231,139,199,.10));box-shadow:none}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){:root[data-interface="liquid-glass"]{--surface:rgba(27,44,54,.96)}:root[data-theme="light"][data-interface="liquid-glass"]{--surface:rgba(255,255,255,.97)}}
-@media(prefers-reduced-transparency:reduce){:root[data-interface="liquid-glass"]{--surface:var(--surface-solid)}:root[data-interface="liquid-glass"] .surface,:root[data-interface="liquid-glass"] .icon-button{backdrop-filter:none;-webkit-backdrop-filter:none}}
-
-
 /* Platform design families. These are web-native adaptations of official
    Apple Liquid Glass and Google Material 3 Expressive guidance. */
 :root[data-interface="liquid-glass"]{
@@ -385,7 +370,7 @@ html[data-motion="off"] .onboarding-shell:after,html[data-motion="off"] .onboard
 :root[data-interface="material-expressive"] .mobile-nav{
   border-radius:28px 28px 0 0;
 }
-@media(prefers-reduced-motion:reduce), (data-motion="off"){
+@media(prefers-reduced-motion:reduce){
   :root[data-interface="material-expressive"] .button,
   :root[data-interface="material-expressive"] .nav-button{
     transition:none;
@@ -413,5 +398,15 @@ html[data-motion="off"] .onboarding-shell:after,html[data-motion="off"] .onboard
     -webkit-backdrop-filter:none;
     backdrop-filter:none;
     background-image:none;
+  }
+}
+:root[data-motion="off"][data-interface="material-expressive"] .button,
+:root[data-motion="off"][data-interface="material-expressive"] .nav-button{
+  transition:none;
+}
+@media(prefers-reduced-motion:reduce){
+  :root[data-interface="material-expressive"] .button:active,
+  :root[data-interface="material-expressive"] .nav-button:active{
+    transform:none;
   }
 }
