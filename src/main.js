@@ -174,7 +174,7 @@ function layout(content, title) {
       <aside class="sidebar" aria-label="Navegación principal">
         <div class="brand"><div class="brand-mark"><img src="./public/icons/dumbbell-mark.svg" alt="" /></div><div><div class="brand-name">FORMA</div><div class="brand-caption">Move with intent</div></div></div>
         <div class="nav-label">Workspace</div><nav class="nav-list">${navItems.map(x => navButton(x)).join('')}</nav>
-        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.3.0</div></div>
+        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.3.1</div></div>
       </aside>
       <main class="main-area">
         <header class="topbar"><div class="topbar-left"><div><div class="eyebrow">${esc(todayLocale())}</div><h1 class="page-title">${esc(title || t(view))}</h1></div></div><div class="top-actions">${installPrompt?`<button class="button secondary small" data-action="install-app">Instalar</button>`:''}<button class="icon-button" data-action="open-timer" aria-label="${esc(t('timer'))}" title="${esc(t('timer'))}">${icon('timer')}</button>${state.activeSession ? `<button class="button primary small" data-action="return-session">${icon('play')}${esc(t('resumeSession'))}</button>`:''}<div class="avatar" aria-label="Perfil">${profileName ? esc(profileName.slice(0,1).toUpperCase()) : 'F'}</div></div></header>
@@ -396,7 +396,7 @@ function onboardingPage() {
         '<div class="notice onboarding-privacy"><strong>' + esc(tr('Siempre bajo tu control.','Always in your control.')) + '</strong> ' + esc(tr('La cámara solo se activa desde su función específica. Los datos de perfil y entrenamiento permanecen en este dispositivo.','The camera only turns on from its dedicated feature. Profile and workout data stay on this device.')) + '</div>' +
         '<div class="onboarding-actions onboarding-actions-split"><button type="button" class="button ghost" data-action="onboarding-back">' + icon('back') + ' ' + esc(tr('Atrás','Back')) + '</button><button type="submit" class="button primary">' + esc(tr('Guardar y entrar','Save and enter')) + ' ' + icon('check') + '</button></div>' +
       '</section>' +
-      '<div class="onboarding-bottom"><span>' + icon('shield') + ' ' + esc(tr('Sin cuenta · Sin nube · Sin prisa','No account · No cloud · No rush')) + '</span><span>FORMA · 1.3.0</span></div>' +
+      '<div class="onboarding-bottom"><span>' + icon('shield') + ' ' + esc(tr('Sin cuenta · Sin nube · Sin prisa','No account · No cloud · No rush')) + '</span><span>FORMA · 1.3.1</span></div>' +
     '</form>' +
   '</main>';
 }
