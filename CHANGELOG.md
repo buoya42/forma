@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.1 — 2026-11-09
+- Improved Apple/iPadOS detection, including iPad Safari's desktop-style user agent, and made platform selection a tested module.
+- Added the automatic/manual interface-style selector to first-run setup as well as Settings; users can switch between Liquid Glass and Material 3 Expressive at any time.
+- Refined the Liquid Glass web treatment with layered translucency, saturation, backdrop blur, highlights and reduced-transparency fallbacks.
+- Expanded the Material 3 Expressive web treatment with tonal color roles, expressive shapes, pill controls and emphasized interaction feedback.
+- Preserved manual interface-style choices in imported backups and refreshed the PWA cache.
+- Documented official Apple and Google implementation references and the limits of reproducing native system materials inside a web PWA.
+
 ## 1.4.0 — 2026-11-09
 - Added platform-aware interface styling: Liquid Glass is the automatic default on Apple touch devices; Material 3 Expressive is the automatic default on Android and other platforms.
 - Added a persistent manual interface-style selector so every user can switch between Liquid Glass and Material 3 Expressive at any time, independently of light/dark mode.
