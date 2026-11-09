@@ -104,6 +104,7 @@ export const WORKOUT_PRESETS = [
 export function defaultState() {
   return {
     version: 1,
+    onboardingComplete: false,
     profile: { name: '', level: 'beginner', equipment: ['bodyweight','dumbbells'], duration: 20, units: 'metric' },
     preferences: { theme: 'system', language: 'es', gestures: true, workoutGestures: true, doubleTap: true, sensitivity: 'normal', sound: false, vibration: false, notifications: false, animations: true },
     favorites: [], hiddenExercises: [], customExercises: [], workouts: [], sessions: [], schedule: [],
