@@ -32,6 +32,12 @@ test('existing saved installs skip onboarding and first-run motion respects redu
   assert.match(main,/const hasOnboardingFlag=Boolean\(savedState\) && typeof savedState\.onboardingComplete === 'boolean'/);
   assert.match(main,/else if\(!hasOnboardingFlag\) state\.onboardingComplete=true/);
   assert.match(css,/@keyframes onboarding-orbit/);
+  assert.match(main,/Encuentra tu/);
+  assert.match(main,/onboarding-float-card/);
+  assert.match(main,/onboarding-title-accent/);
+  assert.match(css,/@keyframes onboarding-mark-arrive/);
+  assert.match(css,/onboarding-button-sheen/);
+  assert.match(css,/grid-template-areas:"art copy"/);
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.match(css,/data-motion="off"/);
 });
