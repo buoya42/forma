@@ -21,6 +21,7 @@ function feed(tracker,id,angle,startTime) {
 
 test('joint angle calculation handles right angles and invalid points',()=>{
   assert.equal(calculateJointAngle({x:-1,y:0},{x:0,y:0},{x:0,y:1}),90);
+  assert.equal(calculateJointAngle({x:1,y:0,z:0},{x:0,y:0,z:0},{x:0,y:0,z:1}),90);
   assert.equal(calculateJointAngle({x:0,y:0},{x:0,y:0},{x:1,y:0}),null);
   assert.equal(calculateJointAngle(null,{x:0,y:0},{x:1,y:0}),null);
 });
