@@ -43,7 +43,7 @@ const presetItems = (ids) => ids.map(exerciseId => ({
 export const WORKOUT_PRESETS = [
   {
     id: 'metodo-fluffo',
-    name: 'Método Fluffo',
+    name: 'Método Fluffo', nameEn: 'Fluffo Method',
     focusEs: 'Cuerpo completo · brazos, pecho, piernas y core',
     focusEn: 'Full body · arms, chest, legs and core',
     descriptionEs: 'La rutina inspirada en la idea original de Fluffo. Reúne los movimientos que se mencionaron al principio, con libertad para adaptar cada ejercicio.',

@@ -43,7 +43,7 @@ const I18N = {
     saveStart:'Guardar e iniciar', resumeSession:'Volver a la sesión', cameraStart:'Activar cámara', cameraStop:'Detener cámara',
     dataStorage:'Almacenamiento', storageInfo:'El navegador puede eliminar datos locales al borrar sus datos de sitio. Exporta una copia para conservarlos.',
     explainGestures:'Desliza horizontalmente entre secciones. En una sesión, desliza a izquierda o derecha para cambiar de ejercicio. Siempre tienes botones equivalentes.',
-    emptyFavorites:'Guarda ejercicios con el icono de corazón para tenerlos aquí.',
+    emptyFavorites:'Guarda ejercicios con el marcador para tenerlos aquí.',
     noCalendar:'No hay actividades para esta fecha.',
   },
   en: {
@@ -77,7 +77,7 @@ const I18N = {
     saveStart:'Save & start', resumeSession:'Return to session', cameraStart:'Enable camera', cameraStop:'Stop camera',
     dataStorage:'Storage', storageInfo:'The browser may remove local data when site data is cleared. Export a copy to keep it.',
     explainGestures:'Swipe horizontally between sections. During a session, swipe left or right to change exercise. Equivalent buttons are always available.',
-    emptyFavorites:'Save exercises with the heart icon to see them here.', noCalendar:'No activity on this date.'
+    emptyFavorites:'Save exercises with the bookmark icon to see them here.', noCalendar:'No activity on this date.'
   }
 };
 let state = defaultState();
@@ -131,6 +131,7 @@ function icon(name) {
     search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/>',
     timer:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9 2h6M12 2v3"/>',
     heart:'<path d="M20.8 8.8c0 5.5-8.8 11-8.8 11S3.2 14.3 3.2 8.8A4.8 4.8 0 0 1 12 6a4.8 4.8 0 0 1 8.8 2.8Z"/>',
+    bookmark:'<path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.5L6 21V4.75Z"/>',
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
     plus:'<path d="M12 5v14M5 12h14"/>',
     close:'<path d="m18 6-12 12M6 6l12 12"/>',
@@ -225,11 +226,12 @@ function presetCopy(preset, key) {
   const language = state.preferences.language === 'en' ? 'En' : 'Es';
   return preset[`${key}${language}`] || preset[key] || '';
 }
+function presetName(preset) { return state.preferences.language === 'en' ? (preset.nameEn || preset.name) : preset.name; }
 function presetCard(preset) {
   const names = preset.exercises.map(item => EXERCISES.find(exercise => exercise.id === item.exerciseId)?.name || 'Movimiento');
   return `<article class="preset-card ${preset.featured?'featured':''}">
     <div class="preset-card-top"><span class="tag">${esc(presetCopy(preset,'level'))}</span>${preset.featured?`<span class="preset-origin">✦ IDEA ORIGINAL</span>`:''}</div>
-    <h3>${esc(preset.name)}</h3>
+    <h3>${esc(presetName(preset))}</h3>
     <p class="preset-focus">${esc(presetCopy(preset,'focus'))}</p>
     <p class="preset-description">${esc(presetCopy(preset,'description'))}</p>
     <div class="preset-equipment">${icon('dumbbell')}<span>${esc(presetCopy(preset,'equipment'))}</span></div>
@@ -249,7 +251,7 @@ function workoutsPage() {
 }
 function exerciseCard(e) {
   const favorite = state.favorites.includes(e.id);
-  return `<article class="exercise-card" data-action="exercise-detail" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="Ver ${esc(e.name)}"><div class="exercise-card-top"><div class="exercise-glyph">${icon('activity')}</div><button class="favorite ${favorite?'active':''}" data-action="favorite" data-id="${esc(e.id)}" aria-label="${favorite?'Quitar de':'Añadir a'} favoritos">${icon('heart')}</button></div><h3>${esc(e.name)}</h3><p>${esc(categoryName(e.category))} · ${esc(difficultyName(e.difficulty))}</p><div class="exercise-card-foot"><span class="pill">${esc((e.equipment||[]).map(equipmentName).join(', '))}</span><span style="color:var(--accent)">${icon('chevron')}</span></div></article>`;
+  return `<article class="exercise-card" data-action="exercise-detail" data-id="${esc(e.id)}" tabindex="0" role="button" aria-label="Ver ${esc(e.name)}"><div class="exercise-card-top"><div class="exercise-glyph">${icon('activity')}</div><button class="favorite ${favorite?'active':''}" data-action="favorite" data-id="${esc(e.id)}" aria-label="${favorite?'Quitar de':'Añadir a'} favoritos">${icon('bookmark')}</button></div><h3>${esc(e.name)}</h3><p>${esc(categoryName(e.category))} · ${esc(difficultyName(e.difficulty))}</p><div class="exercise-card-foot"><span class="pill">${esc((e.equipment||[]).map(equipmentName).join(', '))}</span><span style="color:var(--accent)">${icon('chevron')}</span></div></article>`;
 }
 function equipmentName(id) { return EQUIPMENT.find(x=>x[0]===id)?.[1] || id; }
 function filteredExercises() {
@@ -269,7 +271,7 @@ function exerciseGrid() {
 }
 function exercisesPage() {
   return `<div class="toolbar" style="margin-bottom:13px"><div class="search-field">${icon('search')}<input id="exercise-search" type="search" placeholder="${esc(t('search'))}" value="${esc(exerciseFilters.query)}" aria-label="${esc(t('search'))}" /></div><button class="button secondary" data-action="new-exercise">${icon('plus')}${esc(t('customExercise'))}</button></div>
-    <div class="toolbar" style="margin-bottom:10px"><button class="filter-chip ${exerciseFilters.category==='all'?'active':''}" data-filter="category" data-value="all">${esc(t('all'))}</button>${CATEGORIES.map(([id,label])=>`<button class="filter-chip ${exerciseFilters.category===id?'active':''}" data-filter="category" data-value="${id}">${esc(label)}</button>`).join('')}<button class="filter-chip ${exerciseFilters.favorites?'active':''}" data-filter="favorites" data-value="toggle">${icon('heart')} ${esc(t('favoriteOnly'))}</button></div>
+    <div class="toolbar" style="margin-bottom:10px"><button class="filter-chip ${exerciseFilters.category==='all'?'active':''}" data-filter="category" data-value="all">${esc(t('all'))}</button>${CATEGORIES.map(([id,label])=>`<button class="filter-chip ${exerciseFilters.category===id?'active':''}" data-filter="category" data-value="${id}">${esc(label)}</button>`).join('')}<button class="filter-chip ${exerciseFilters.favorites?'active':''}" data-filter="favorites" data-value="toggle">${icon('bookmark')} ${esc(t('favoriteOnly'))}</button></div>
     <div class="toolbar" style="margin-bottom:16px"><select id="equipment-filter" aria-label="Filtrar por material"><option value="all">Todo el material</option>${EQUIPMENT.map(([id,label])=>`<option value="${id}" ${exerciseFilters.equipment===id?'selected':''}>${esc(label)}</option>`).join('')}</select><select id="difficulty-filter" aria-label="Filtrar por dificultad"><option value="all">Todas las dificultades</option><option value="beginner" ${exerciseFilters.difficulty==='beginner'?'selected':''}>Inicial</option><option value="intermediate" ${exerciseFilters.difficulty==='intermediate'?'selected':''}>Intermedio</option><option value="advanced" ${exerciseFilters.difficulty==='advanced'?'selected':''}>Avanzado</option></select></div>
     <div class="exercise-grid exercise-results">${exerciseGrid()}</div>
     <div class="small-text" style="margin-top:14px">${filteredExercises().length} movimientos disponibles · Las ilustraciones son esquemáticas; no son vídeos.</div>`;
@@ -388,7 +390,7 @@ function renderModal() {
     title=e.name; subtitle=`${categoryName(e.category)} · ${difficultyName(e.difficulty)} · ${(e.equipment||[]).map(equipmentName).join(', ')}`;
     const sections=[['Posición inicial',e.start],['Ejecución',e.steps],['Respiración',e.breathing],['Errores frecuentes',e.mistakes],['Variación más sencilla',e.easier],['Variación más exigente',e.harder],['Seguridad',e.safety]];
     const exerciseSessions=state.sessions.filter(s=>s.workout?.exercises?.some(x=>x.exerciseId===e.id)).slice(0,4);
-    body=`<div class="exercise-glyph" data-illustration style="width:72px;height:72px;border-radius:24px;margin-bottom:12px">${icon('activity')}</div>${sections.map(([h,v])=>`<section class="detail-section"><h3>${esc(h)}</h3>${Array.isArray(v)?`<ul>${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<p>${esc(v||'No hay información adicional.')}</p>`}</section>`).join('')}${exerciseSessions.length?`<section class="detail-section"><h3>Sesiones donde aparece</h3><ul>${exerciseSessions.map(s=>`<li>${esc(s.workoutName)} · ${esc(formatDate(s.completedAt))}</li>`).join('')}</ul></section>`:''}<div class="form-actions"><button class="button secondary" data-action="favorite" data-id="${esc(e.id)}">${icon('heart')}${state.favorites.includes(e.id)?'Quitar de favoritos':'Guardar en favoritos'}</button>${state.customExercises.some(x=>x.id===e.id)?`<button class="button ghost" data-action="edit-exercise" data-id="${esc(e.id)}">Editar</button><button class="button danger small" data-action="delete-custom-exercise" data-id="${esc(e.id)}">Eliminar</button>`:`<button class="button ghost small" data-action="hide-exercise" data-id="${esc(e.id)}">Ocultar</button>`}<button class="button primary" data-action="close-modal">${esc(t('close'))}</button></div>`;
+    body=`<div class="exercise-glyph" data-illustration style="width:72px;height:72px;border-radius:24px;margin-bottom:12px">${icon('activity')}</div>${sections.map(([h,v])=>`<section class="detail-section"><h3>${esc(h)}</h3>${Array.isArray(v)?`<ul>${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<p>${esc(v||'No hay información adicional.')}</p>`}</section>`).join('')}${exerciseSessions.length?`<section class="detail-section"><h3>Sesiones donde aparece</h3><ul>${exerciseSessions.map(s=>`<li>${esc(s.workoutName)} · ${esc(formatDate(s.completedAt))}</li>`).join('')}</ul></section>`:''}<div class="form-actions"><button class="button secondary" data-action="favorite" data-id="${esc(e.id)}">${icon('bookmark')}${state.favorites.includes(e.id)?'Quitar de favoritos':'Guardar en favoritos'}</button>${state.customExercises.some(x=>x.id===e.id)?`<button class="button ghost" data-action="edit-exercise" data-id="${esc(e.id)}">Editar</button><button class="button danger small" data-action="delete-custom-exercise" data-id="${esc(e.id)}">Eliminar</button>`:`<button class="button ghost small" data-action="hide-exercise" data-id="${esc(e.id)}">Ocultar</button>`}<button class="button primary" data-action="close-modal">${esc(t('close'))}</button></div>`;
   } else if (modal.type==='builder') {
     const d=builderDraft; title=modal.presetTitle?`Personalizar ${modal.presetTitle}`:(d.id?'Editar entrenamiento':'Nuevo entrenamiento'); subtitle=modal.presetTitle?'Revisa la selección y ajusta objetivos, pausas y notas antes de guardar.':'Configura la estructura y los objetivos de cada movimiento.';
     body=`<form data-form="builder"><div class="field"><label for="builder-name">${esc(t('workoutName'))}</label><input id="builder-name" name="name" required maxlength="70" value="${esc(d.name)}" placeholder="Ej. Fuerza y movilidad" /></div><div class="form-grid" style="margin-top:12px"><div class="field"><label for="builder-structure">${esc(t('structure'))}</label><select id="builder-structure" name="structure"><option value="reps" ${d.structure==='reps'?'selected':''}>Repeticiones</option><option value="time" ${d.structure==='time'?'selected':''}>Por tiempo</option><option value="circuit" ${d.structure==='circuit'?'selected':''}>Circuito</option><option value="custom" ${d.structure==='custom'?'selected':''}>Personalizada</option></select></div><div class="field"><label for="builder-notes">Notas generales</label><input id="builder-notes" name="notes" value="${esc(d.notes||'')}" maxlength="500" placeholder="Opcional" /></div></div>
@@ -421,8 +423,8 @@ let preSessionView = 'workouts';
 function useWorkoutPreset(presetId) {
   const preset=WORKOUT_PRESETS.find(item=>item.id===presetId);
   if(!preset){toast('No se ha encontrado este preajuste.','error');return;}
-  builderDraft={id:null,name:preset.name,structure:preset.structure,exercises:structuredClone(preset.exercises),notes:preset.notes,warmup:false,cooldown:false};
-  openModal('builder',{presetTitle:preset.name});
+  builderDraft={id:null,name:presetName(preset),structure:preset.structure,exercises:structuredClone(preset.exercises),notes:preset.notes,warmup:false,cooldown:false};
+  openModal('builder',{presetTitle:presetName(preset)});
 }
 function openBuilder(id=null) {
   const existing=state.workouts.find(w=>w.id===id);

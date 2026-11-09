@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 — 2026-11-09
+- Replaced heart symbols with bookmark icons across exercise-library favorite controls and updated the Spanish and English helper text.
+- Added the English preset display name **Fluffo Method**, while preserving **Método Fluffo** in Spanish and keeping the original eight exercises and editable, unset targets.
+- Updated the package and service-worker cache version to 1.2.1.
+
 ## 1.2.0 — 2026-11-08
 - Renamed the featured preset **Felix method** to **Método Fluffo** and added a one-time migration for previously saved templates, sessions and calendar labels with the old exact name.
 - Added animated forward/backward transitions for navigation, swipe feedback, live-workout exercise transitions, tactile control feedback and an in-app animation toggle that respects the operating-system reduced-motion preference.
