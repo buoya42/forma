@@ -90,6 +90,8 @@ let exerciseFilters = { query:'', category:'all', equipment:'all', difficulty:'a
 let progressTab = 'overview';
 let timerInterval = null;
 let cameraStream = null;
+let onboardingStep = 0;
+let onboardingNotificationsRequested = false;
 let cameraVideo = null;
 let gestureController;
 let saving = Promise.resolve();
@@ -172,7 +174,7 @@ function layout(content, title) {
       <aside class="sidebar" aria-label="Navegación principal">
         <div class="brand"><div class="brand-mark"><img src="./public/icons/dumbbell-mark.svg" alt="" /></div><div><div class="brand-name">FORMA</div><div class="brand-caption">Move with intent</div></div></div>
         <div class="nav-label">Workspace</div><nav class="nav-list">${navItems.map(x => navButton(x)).join('')}</nav>
-        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.2.0</div></div>
+        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.3.0</div></div>
       </aside>
       <main class="main-area">
         <header class="topbar"><div class="topbar-left"><div><div class="eyebrow">${esc(todayLocale())}</div><h1 class="page-title">${esc(title || t(view))}</h1></div></div><div class="top-actions">${installPrompt?`<button class="button secondary small" data-action="install-app">Instalar</button>`:''}<button class="icon-button" data-action="open-timer" aria-label="${esc(t('timer'))}" title="${esc(t('timer'))}">${icon('timer')}</button>${state.activeSession ? `<button class="button primary small" data-action="return-session">${icon('play')}${esc(t('resumeSession'))}</button>`:''}<div class="avatar" aria-label="Perfil">${profileName ? esc(profileName.slice(0,1).toUpperCase()) : 'F'}</div></div></header>
@@ -308,7 +310,7 @@ function settingsPage() {
   const p=state.preferences, profile=state.profile;
   const themeOptions=[['system',t('system')],['dark',t('dark')],['light',t('light')]];
   return `<form data-form="settings" class="stack">
-    <section class="surface pad"><div class="section-head" style="margin:0 0 15px"><div><h2>Perfil de entrenamiento</h2><p>Opcional; ayuda a adaptar la experiencia</p></div></div><div class="form-grid"><div class="field"><label for="profile-name">Nombre (opcional)</label><input id="profile-name" name="name" maxlength="40" value="${esc(profile.name)}" placeholder="¿Cómo te llamamos?" /></div><div class="field"><label for="profile-level">${esc(t('level'))}</label><select id="profile-level" name="level"><option value="beginner" ${profile.level==='beginner'?'selected':''}>${esc(t('beginner'))}</option><option value="intermediate" ${profile.level==='intermediate'?'selected':''}>${esc(t('intermediate'))}</option><option value="advanced" ${profile.level==='advanced'?'selected':''}>${esc(t('advanced'))}</option></select></div><div class="field"><label for="profile-duration">${esc(t('duration'))} (${esc(t('min'))})</label><input id="profile-duration" name="duration" type="number" min="5" max="180" value="${profile.duration}" /></div><div class="field"><label for="profile-units">${esc(t('units'))}</label><select id="profile-units" name="units"><option value="metric" ${profile.units==='metric'?'selected':''}>${esc(t('metric'))}</option><option value="imperial" ${profile.units==='imperial'?'selected':''}>${esc(t('imperial'))}</option></select></div></div><div class="field" style="margin-top:14px"><span class="field-label">${esc(t('equipment'))}</span><div class="toolbar">${EQUIPMENT.map(([id,label])=>`<label class="check-row"><input type="checkbox" name="equipment" value="${id}" ${profile.equipment.includes(id)?'checked':''}/> ${esc(label)}</label>`).join('')}</div></div><div class="form-actions"><button class="button primary" type="submit">${esc(t('save'))}</button></div></section>
+    <section class="surface pad"><div class="section-head" style="margin:0 0 15px"><div><h2>Perfil de entrenamiento</h2><p>Opcional; ayuda a adaptar la experiencia</p></div></div><div class="form-grid"><div class="field"><label for="profile-name">Nombre (opcional)</label><input id="profile-name" name="name" maxlength="40" value="${esc(profile.name)}" placeholder="¿Cómo te llamamos?" /></div><div class="field"><label for="profile-level">${esc(t('level'))}</label><select id="profile-level" name="level"><option value="beginner" ${profile.level==='beginner'?'selected':''}>${esc(t('beginner'))}</option><option value="intermediate" ${profile.level==='intermediate'?'selected':''}>${esc(t('intermediate'))}</option><option value="advanced" ${profile.level==='advanced'?'selected':''}>${esc(t('advanced'))}</option></select></div><div class="field"><label for="profile-duration">${esc(t('duration'))} (${esc(t('min'))})</label><input id="profile-duration" name="duration" type="number" min="5" max="180" value="${profile.duration}" /></div><div class="field"><label for="profile-units">${esc(t('units'))}</label><select id="profile-units" name="units"><option value="metric" ${profile.units==='metric'?'selected':''}>${esc(t('metric'))}</option><option value="imperial" ${profile.units==='imperial'?'selected':''}>${esc(t('imperial'))}</option></select></div></div><div class="field" style="margin-top:14px"><span class="field-label">${esc(t('equipment'))}</span><div class="toolbar">${EQUIPMENT.map(([id,label])=>`<label class="check-row"><input type="checkbox" name="equipment" value="${id}" ${profile.equipment.includes(id)?'checked':''}/> ${esc(label)}</label>`).join('')}</div></div><div class="form-actions"><button class="button primary" type="submit">${esc(t('save'))}</button><button class="button ghost small" type="button" data-action="open-onboarding">${state.preferences.language==='en'?'Run setup again':'Volver a configurar FORMA'}</button></div></section>
     <section class="surface pad"><div class="section-head" style="margin:0 0 10px"><div><h2>${esc(t('appearance'))}</h2><p>Personaliza la interfaz</p></div></div><div class="form-grid"><div class="field"><label for="pref-theme">${esc(t('theme'))}</label><select id="pref-theme" name="theme">${themeOptions.map(([v,l])=>`<option value="${v}" ${p.theme===v?'selected':''}>${esc(l)}</option>`).join('')}</select></div><div class="field"><label for="pref-language">${esc(t('language'))}</label><select id="pref-language" name="language"><option value="es" ${p.language==='es'?'selected':''}>Español</option><option value="en" ${p.language==='en'?'selected':''}>English</option></select></div></div><div class="form-actions"><button class="button secondary" type="submit">Aplicar cambios</button></div></section>
     <section class="surface pad"><div class="section-head" style="margin:0 0 7px"><div><h2>Interacción y accesibilidad</h2><p>Los gestos siempre tienen controles visibles equivalentes</p></div></div>
       ${toggle('gestures',t('gestures'),t('explainGestures'),p.gestures)}${toggle('workoutGestures',t('workoutGestures'),'Deslizar para cambiar de ejercicio y abrir instrucciones.',p.workoutGestures)}${toggle('doubleTap','Ampliar con doble toque','Doble toque sobre la ilustración del ejercicio.',p.doubleTap)}${toggle('animations','Animaciones de interfaz','Transiciones suaves entre pantallas y microinteracciones. Respeta Reducir movimiento del sistema.',p.animations!==false)}
@@ -329,6 +331,96 @@ function settingsPage() {
 }
 function toggle(name,label,description,value) {
   return `<div class="toggle-row"><div class="toggle-copy"><strong>${esc(label)}</strong><small>${esc(description)}</small></div><input class="switch" type="checkbox" data-setting="${name}" aria-label="${esc(label)}" ${value?'checked':''}/></div>`;
+}
+
+function onboardingPage() {
+  const en = state.preferences.language === 'en';
+  const tr = (es, english) => en ? english : es;
+  const profile = state.profile, preferences = state.preferences;
+  const selectedEquipment = new Set(profile.equipment || ['bodyweight']);
+  const equipmentNames = {
+    bodyweight:tr('Sin material','Bodyweight only'),
+    dumbbells:tr('Mancuernas','Dumbbells'),
+    bench:tr('Banco','Bench'),
+    'resistance-band':tr('Banda elástica','Resistance band'),
+    chair:tr('Silla','Chair')
+  };
+  const equipmentOptions = EQUIPMENT.map(([id]) =>
+    '<label class="onboarding-choice"><input type="checkbox" name="equipment" value="' + esc(id) + '"' + (selectedEquipment.has(id) ? ' checked' : '') + '><span class="onboarding-choice-mark">' + icon('check') + '</span><span><strong>' + esc(equipmentNames[id] || id) + '</strong><small>' + esc(id === 'bodyweight' ? tr('Entrena sin accesorios','Train without equipment') : tr('Disponible para tus sesiones','Available for your sessions')) + '</small></span></label>'
+  ).join('');
+  const progress = onboardingStep === 0 ? 0 : onboardingStep === 1 ? 50 : 100;
+  const stage = onboardingStep === 0 ? tr('Bienvenida','Welcome') : onboardingStep === 1 ? tr('Tu perfil','Your profile') : tr('Tu espacio','Your setup');
+  return '<main class="onboarding-shell">' +
+    '<form data-form="onboarding" class="onboarding-form" novalidate>' +
+      '<header class="onboarding-top">' +
+        '<div class="onboarding-brand"><span class="onboarding-brand-mark"><img src="./public/icons/dumbbell-mark.svg" alt=""></span><span>FORMA</span></div>' +
+        '<label class="onboarding-language"><span>' + esc(tr('Idioma','Language')) + '</span><select id="onboarding-language" name="language"><option value="es"' + (preferences.language === 'es' ? ' selected' : '') + '>Español</option><option value="en"' + (preferences.language === 'en' ? ' selected' : '') + '>English</option></select></label>' +
+      '</header>' +
+      '<div class="onboarding-progress" aria-label="' + esc(stage) + '">' +
+        '<div class="onboarding-progress-copy"><span>' + esc(stage) + '</span><span>' + (onboardingStep + 1) + ' / 3</span></div>' +
+        '<div class="onboarding-progress-track"><span style="width:' + progress + '%"></span></div>' +
+      '</div>' +
+      '<section class="onboarding-step onboarding-welcome"' + (onboardingStep !== 0 ? ' hidden' : '') + ' data-onboarding-step="0" aria-labelledby="onboarding-title">' +
+        '<div class="onboarding-art" aria-hidden="true"><span class="onboarding-orbit orbit-one"></span><span class="onboarding-orbit orbit-two"></span><span class="onboarding-orbit orbit-three"></span><span class="onboarding-spark spark-one">✦</span><span class="onboarding-spark spark-two">✧</span><div class="onboarding-art-mark"><img src="./public/icons/dumbbell-mark.svg" alt=""></div></div>' +
+        '<p class="onboarding-kicker">' + esc(tr('MUÉVETE CON INTENCIÓN','MOVE WITH INTENT')) + '</p>' +
+        '<h1 id="onboarding-title">' + esc(tr('Tu espacio. Tu ritmo.','Your space. Your pace.')) + '</h1>' +
+        '<p class="onboarding-lead">' + esc(tr('Bienvenido a FORMA. Prepara tu espacio para entrenar a tu manera, aprender movimientos y seguir tu progreso sin perder de vista lo importante: sentirte bien.','Welcome to FORMA. Set up your space to train your way, learn movements and follow your progress without losing sight of what matters: feeling good.')) + '</p>' +
+        '<div class="onboarding-benefits"><div><span>' + icon('shield') + '</span><strong>' + esc(tr('Privado por diseño','Private by design')) + '</strong><small>' + esc(tr('Tus datos se guardan en este dispositivo.','Your data stays on this device.')) + '</small></div><div><span>' + icon('sliders') + '</span><strong>' + esc(tr('A tu medida','Made to fit you')) + '</strong><small>' + esc(tr('Ajustes que puedes cambiar cuando quieras.','Settings you can change anytime.')) + '</small></div></div>' +
+        '<div class="onboarding-actions"><button type="button" class="button primary onboarding-primary" data-action="onboarding-start">' + esc(tr('Preparar FORMA','Set up FORMA')) + ' ' + icon('arrow') + '</button><button type="button" class="button ghost" data-action="onboarding-skip">' + esc(tr('Explorar primero','Explore first')) + '</button></div>' +
+        '<p class="onboarding-footnote">' + esc(tr('No necesitas crear una cuenta. No pediremos acceso a la cámara ni notificaciones sin que tú lo elijas.','No account needed. We will not request camera or notification access unless you choose it.')) + '</p>' +
+      '</section>' +
+      '<section class="onboarding-step"' + (onboardingStep !== 1 ? ' hidden' : '') + ' data-onboarding-step="1" aria-labelledby="onboarding-profile-title">' +
+        '<div class="onboarding-section-icon">' + icon('activity') + '</div>' +
+        '<p class="onboarding-kicker">' + esc(tr('PASO 1 · PUNTO DE PARTIDA','STEP 1 · STARTING POINT')) + '</p>' +
+        '<h1 id="onboarding-profile-title">' + esc(tr('Empecemos contigo.','Let’s start with you.')) + '</h1>' +
+        '<p class="onboarding-lead">' + esc(tr('Estos detalles ayudan a adaptar las sugerencias. Todo es editable y puedes dejar el nombre vacío.','These details help tailor suggestions. Everything is editable, and your name can stay blank.')) + '</p>' +
+        '<div class="onboarding-fields">' +
+          '<div class="field onboarding-field-wide"><label for="onboarding-name">' + esc(tr('¿Cómo te llamamos? (opcional)','What should we call you? (optional)')) + '</label><input id="onboarding-name" name="name" maxlength="40" value="' + esc(profile.name || '') + '" placeholder="' + esc(tr('Tu nombre','Your name')) + '"></div>' +
+          '<div class="field"><label for="onboarding-level">' + esc(tr('Experiencia','Experience')) + '</label><select id="onboarding-level" name="level"><option value="beginner"' + (profile.level === 'beginner' ? ' selected' : '') + '>' + esc(tr('Principiante','Beginner')) + '</option><option value="intermediate"' + (profile.level === 'intermediate' ? ' selected' : '') + '>' + esc(tr('Intermedio','Intermediate')) + '</option><option value="advanced"' + (profile.level === 'advanced' ? ' selected' : '') + '>' + esc(tr('Avanzado','Advanced')) + '</option></select></div>' +
+          '<div class="field"><label for="onboarding-duration">' + esc(tr('Duración habitual','Usual session length')) + '</label><div class="onboarding-input-suffix"><input id="onboarding-duration" name="duration" type="number" min="5" max="180" step="5" value="' + esc(profile.duration || 20) + '"><span>' + esc(tr('min','min')) + '</span></div></div>' +
+          '<div class="field onboarding-field-wide"><label for="onboarding-units">' + esc(tr('Unidades de peso','Weight units')) + '</label><select id="onboarding-units" name="units"><option value="metric"' + (profile.units !== 'imperial' ? ' selected' : '') + '>' + esc(tr('Métrico · kg','Metric · kg')) + '</option><option value="imperial"' + (profile.units === 'imperial' ? ' selected' : '') + '>' + esc(tr('Imperial · lb','Imperial · lb')) + '</option></select></div>' +
+        '</div>' +
+        '<div class="onboarding-actions onboarding-actions-split"><button type="button" class="button ghost" data-action="onboarding-back">' + icon('back') + ' ' + esc(tr('Atrás','Back')) + '</button><button type="button" class="button primary" data-action="onboarding-next">' + esc(tr('Continuar','Continue')) + ' ' + icon('arrow') + '</button></div>' +
+      '</section>' +
+      '<section class="onboarding-step"' + (onboardingStep !== 2 ? ' hidden' : '') + ' data-onboarding-step="2" aria-labelledby="onboarding-setup-title">' +
+        '<div class="onboarding-section-icon">' + icon('dumbbell') + '</div>' +
+        '<p class="onboarding-kicker">' + esc(tr('PASO 2 · TU ENTORNO','STEP 2 · YOUR SPACE')) + '</p>' +
+        '<h1 id="onboarding-setup-title">' + esc(tr('Prepara tu espacio.','Set up your space.')) + '</h1>' +
+        '<p class="onboarding-lead">' + esc(tr('Marca el material que tienes a mano. FORMA no bloqueará ejercicios: siempre podrás elegir variantes y editar tus rutinas.','Choose the equipment you have. FORMA will not lock exercises: you can always choose alternatives and edit your routines.')) + '</p>' +
+        '<fieldset class="onboarding-equipment"><legend>' + esc(tr('Material disponible','Available equipment')) + '</legend><div class="onboarding-choice-grid">' + equipmentOptions + '</div></fieldset>' +
+        '<div class="onboarding-fields onboarding-preferences">' +
+          '<div class="field"><label for="onboarding-theme">' + esc(tr('Apariencia','Appearance')) + '</label><select id="onboarding-theme" name="theme"><option value="system"' + (preferences.theme === 'system' ? ' selected' : '') + '>' + esc(tr('Seguir el sistema','Follow system')) + '</option><option value="dark"' + (preferences.theme === 'dark' ? ' selected' : '') + '>' + esc(tr('Oscuro','Dark')) + '</option><option value="light"' + (preferences.theme === 'light' ? ' selected' : '') + '>' + esc(tr('Claro','Light')) + '</option></select></div>' +
+          '<div class="field"><label>' + esc(tr('Comodidad y avisos','Comfort and reminders')) + '</label><label class="onboarding-toggle"><input type="checkbox" name="animations"' + (preferences.animations !== false ? ' checked' : '') + '><span class="onboarding-toggle-copy"><strong>' + esc(tr('Animaciones suaves','Smooth animations')) + '</strong><small>' + esc(tr('Se desactivan automáticamente si tu sistema prefiere menos movimiento.','Automatically reduced when your system prefers less motion.')) + '</small></span></label>' +
+          '<label class="onboarding-toggle"><input type="checkbox" name="notifications"' + (preferences.notifications ? ' checked' : '') + '><span class="onboarding-toggle-copy"><strong>' + esc(tr('Recordatorios de entrenamiento','Workout reminders')) + '</strong><small>' + esc(tr('FORMA pedirá permiso al terminar. Puedes cambiarlo más tarde.','FORMA will ask for permission when you finish. You can change this later.')) + '</small></span></label></div>' +
+        '</div>' +
+        '<div class="notice onboarding-privacy"><strong>' + esc(tr('Siempre bajo tu control.','Always in your control.')) + '</strong> ' + esc(tr('La cámara solo se activa desde su función específica. Los datos de perfil y entrenamiento permanecen en este dispositivo.','The camera only turns on from its dedicated feature. Profile and workout data stay on this device.')) + '</div>' +
+        '<div class="onboarding-actions onboarding-actions-split"><button type="button" class="button ghost" data-action="onboarding-back">' + icon('back') + ' ' + esc(tr('Atrás','Back')) + '</button><button type="submit" class="button primary">' + esc(tr('Guardar y entrar','Save and enter')) + ' ' + icon('check') + '</button></div>' +
+      '</section>' +
+      '<div class="onboarding-bottom"><span>' + icon('shield') + ' ' + esc(tr('Sin cuenta · Sin nube · Sin prisa','No account · No cloud · No rush')) + '</span><span>FORMA · 1.3.0</span></div>' +
+    '</form>' +
+  '</main>';
+}
+
+function syncOnboardingFormToState() {
+  const form = root.querySelector('form[data-form="onboarding"]');
+  if (!form) return;
+  const fd = new FormData(form);
+  const equipment = fd.getAll('equipment').map(String);
+  state.profile = {
+    ...state.profile,
+    name:String(fd.get('name') || '').trim().slice(0,40),
+    level:['beginner','intermediate','advanced'].includes(String(fd.get('level'))) ? String(fd.get('level')) : 'beginner',
+    duration:Math.min(180,Math.max(5,Number(fd.get('duration')) || 20)),
+    units:fd.get('units') === 'imperial' ? 'imperial' : 'metric',
+    equipment:equipment.length ? equipment : ['bodyweight']
+  };
+  state.preferences = {
+    ...state.preferences,
+    language:fd.get('language') === 'en' ? 'en' : 'es',
+    theme:['dark','light','system'].includes(String(fd.get('theme'))) ? String(fd.get('theme')) : state.preferences.theme,
+    animations:fd.get('animations') === 'on'
+  };
+  onboardingNotificationsRequested = fd.get('notifications') === 'on';
 }
 
 function sessionPage() {
@@ -353,6 +445,13 @@ function sessionPage() {
 }
 
 function renderPage() {
+  if (view === 'onboarding') {
+    root.innerHTML = onboardingPage();
+    document.body.dataset.view = 'onboarding';
+    applyTheme();
+    updateSessionTicker();
+    return;
+  }
   const titles = {home:t('home'),workouts:t('workouts'),exercises:t('exercises'),progress:t('progress'),settings:t('settings'),session:'Sesión activa'};
   const content = view==='home' ? homePage() : view==='workouts' ? workoutsPage() : view==='exercises' ? exercisesPage() : view==='progress' ? progressPage() : view==='settings' ? settingsPage() : sessionPage();
   layout(content,titles[view]);
@@ -552,7 +651,7 @@ async function importJSON(file) {
     const text=await file.text();const parsed=JSON.parse(text);const validated=validateImport(parsed);
     if(!confirm('La importación reemplazará los datos locales actuales. ¿Continuar?'))return;
     const defaults=defaultState();
-    state={...defaults,...validated,profile:{...defaults.profile,...validated.profile},preferences:{...defaults.preferences,...validated.preferences},timer:{...defaults.timer,...validated.timer},activeSession:null};
+    state={...defaults,...validated,profile:{...defaults.profile,...validated.profile},preferences:{...defaults.preferences,...validated.preferences},timer:{...defaults.timer,...validated.timer},activeSession:null,onboardingComplete:true};
     await persist();view='home';modal=null;renderPage();toast('Datos importados correctamente.');
   } catch(error) { toast(`No se pudo importar: ${error.message}`,'error'); }
 }
@@ -670,6 +769,11 @@ root.addEventListener('click', async event => {
   const action=actionEl.dataset.action;
   if(action==='backdrop-close') { if(target===actionEl)closeModal();return; }
   switch(action) {
+    case 'onboarding-start': syncOnboardingFormToState(); onboardingStep=1; renderPage(); window.scrollTo({top:0,behavior:'auto'}); break;
+    case 'onboarding-next': syncOnboardingFormToState(); onboardingStep=Math.min(2,onboardingStep+1); renderPage(); window.scrollTo({top:0,behavior:'auto'}); break;
+    case 'onboarding-back': syncOnboardingFormToState(); onboardingStep=Math.max(0,onboardingStep-1); renderPage(); window.scrollTo({top:0,behavior:'auto'}); break;
+    case 'onboarding-skip': syncOnboardingFormToState(); state.onboardingComplete=true; onboardingStep=0; await persist(); view='home'; state.lastViewed='home'; pendingPageAnimation=state.preferences.animations!==false?'enter-forward':''; renderPage(); toast('Puedes ajustar la configuración cuando quieras.'); break;
+    case 'open-onboarding': onboardingStep=0; onboardingNotificationsRequested=state.preferences.notifications; view='onboarding'; modal=null; renderPage(); break;
     case 'new-workout': openBuilder(); break;
     case 'use-preset': useWorkoutPreset(actionEl.dataset.id); break;
     case 'edit-workout': openBuilder(actionEl.dataset.id);break;
@@ -714,7 +818,7 @@ root.addEventListener('click', async event => {
     case 'go-workouts': navigate('workouts');break;
     case 'export': downloadJSON();break;
     case 'import': root.querySelector('#import-file')?.click();break;
-    case 'clear-data': if(confirm('Esto eliminará las plantillas, sesiones, preferencias y agenda guardadas en este navegador. Esta acción no se puede deshacer. ¿Continuar?')){await store.clear();state=defaultState();view='home';persist();renderPage();toast('Datos locales borrados.');}break;
+    case 'clear-data': if(confirm('Esto eliminará las plantillas, sesiones, preferencias y agenda guardadas en este navegador. Esta acción no se puede deshacer. ¿Continuar?')){await store.clear();state=defaultState();onboardingStep=0;view='onboarding';persist();renderPage();toast('Datos locales borrados.');}break;
     case 'open-camera': openModal('camera');break;
     case 'camera-start': await startCamera();break;
     case 'camera-stop': stopCamera();renderPage();break;
@@ -728,6 +832,12 @@ root.addEventListener('input', event => {
 });
 root.addEventListener('change', async event => {
   const el=event.target;
+  if(el.id==='onboarding-language') {
+    syncOnboardingFormToState();
+    state.preferences.language=el.value==='en'?'en':'es';
+    applyTheme(); renderPage();
+    return;
+  }
   if(el.id==='equipment-filter'){exerciseFilters.equipment=el.value;refreshExerciseResults();}
   if(el.id==='difficulty-filter'){exerciseFilters.difficulty=el.value;refreshExerciseResults();}
   if(el.id==='import-file'&&el.files?.[0]){await importJSON(el.files[0]);el.value='';}
@@ -752,9 +862,21 @@ root.addEventListener('change', async event => {
     const reminder=root.querySelector('#schedule-reminder-field');if(reminder)reminder.classList.toggle('hidden',el.value==='rest');
   }
 });
-root.addEventListener('submit', event => {
+root.addEventListener('submit', async event => {
   const form=event.target.closest('form[data-form]');if(!form)return;
   event.preventDefault();const type=form.dataset.form;const fd=new FormData(form);
+  if(type==='onboarding') {
+    syncOnboardingFormToState();
+    if (onboardingStep < 2) { onboardingStep++; renderPage(); return; }
+    state.onboardingComplete=true;
+    state.preferences.notifications=onboardingNotificationsRequested ? await requestNotificationPermission() : false;
+    await persist();
+    onboardingStep=0; view='home'; state.lastViewed='home';
+    pendingPageAnimation=state.preferences.animations!==false?'enter-forward':'';
+    renderPage(); refreshReminderSchedule();
+    toast(state.preferences.language==='en' ? 'Your FORMA space is ready.' : 'Tu espacio FORMA está listo.');
+    return;
+  }
   if(type==='builder') {const mode=event.submitter?.value==='start';saveBuilder(mode);}
   if(type==='settings') {
     state.profile={...state.profile,name:String(fd.get('name')||'').trim(),level:String(fd.get('level')||'beginner'),duration:Math.min(180,Math.max(5,Number(fd.get('duration'))||20)),units:String(fd.get('units')||'metric'),equipment:fd.getAll('equipment').map(String)};
@@ -798,12 +920,17 @@ window.addEventListener('appinstalled',()=>{installPrompt=null;toast('FORMA inst
 
 
 async function init() {
-  state=await store.load(defaultState());
-  // Keep imported or older state bounded and compatible.
+  const savedState=await store.load(null);
+  const firstRun=!savedState;
+  state=savedState || defaultState();
+  // Keep imported or older state bounded and compatible. Existing installations skip onboarding once.
   const defaults=defaultState();
   state={...defaults,...state,profile:{...defaults.profile,...state.profile},preferences:{...defaults.preferences,...state.preferences},timer:{...defaults.timer,...state.timer}};
+  if(firstRun) state.onboardingComplete=false;
+  else if(typeof state.onboardingComplete!=='boolean') state.onboardingComplete=true;
   if(migrateLegacyFluffoNames(state))await store.save(state);
   if(state.activeSession) { state.activeSession.elapsedMs=elapsedMilliseconds(state.activeSession); state.activeSession.runningSince=null; state.activeSession.paused=true; } // Resume is always explicit after reload.
+  view=state.onboardingComplete?'home':'onboarding';
   applyTheme();pendingPageAnimation=state.preferences.animations!==false?'enter-forward':'';renderPage();
   if('serviceWorker'in navigator && (location.protocol==='https:'||location.hostname==='localhost')) {
     navigator.serviceWorker.register(new URL('../sw.js',import.meta.url)).catch(error=>console.warn('Service worker no disponible',error));
