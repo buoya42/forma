@@ -106,7 +106,7 @@ export function defaultState() {
     version: 1,
     onboardingComplete: false,
     profile: { name: '', level: 'beginner', equipment: ['bodyweight','dumbbells'], duration: 20, units: 'metric' },
-    preferences: { theme: 'system', language: 'es', gestures: true, workoutGestures: true, doubleTap: true, sensitivity: 'normal', sound: false, vibration: false, notifications: false, animations: true },
+    preferences: { theme: 'system', interfaceStyle: 'auto', language: 'es', gestures: true, workoutGestures: true, doubleTap: true, sensitivity: 'normal', sound: false, vibration: false, notifications: false, animations: true },
     favorites: [], hiddenExercises: [], customExercises: [], workouts: [], sessions: [], schedule: [],
     activeSession: null, lastViewed: 'home', timer: { duration: 60, remaining: 60, running: false, endAt: null }
   };
