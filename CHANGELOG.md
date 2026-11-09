@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 — 2026-11-09
+- Added an animated first-run welcome and guided setup for profile, experience, preferred session length, units, equipment, language, theme and motion preferences.
+- Existing installations with saved data skip onboarding automatically; users can reopen setup from Settings without losing workouts or history.
+- Added an explicit optional reminder opt-in. Browser notification permission is requested only after the user chooses reminders and finishes setup; camera access remains separate and opt-in.
+- Respects the system reduced-motion preference throughout the opening experience.
+
 ## 1.2.1 — 2026-11-09
 - Replaced heart symbols with bookmark icons across exercise-library favorite controls and updated the Spanish and English helper text.
 - Added the English preset display name **Fluffo Method**, while preserving **Método Fluffo** in Spanish and keeping the original eight exercises and editable, unset targets.
