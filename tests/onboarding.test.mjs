@@ -51,8 +51,8 @@ test('onboarding lets users keep automatic style or explicitly choose either des
   assert.match(main,/Automatic · recommended/);
   assert.match(main,/Automático · recomendado/);
   assert.match(main,/interfaceStyle:\['auto','liquid-glass','material-expressive'\]/);
-  assert.match(main,/cameraDisclaimer:'La cámara solo muestra una vista previa local en este dispositivo/);
-  assert.match(main,/automatic rep counting are not integrated yet/);
+  assert.match(main,/cameraDisclaimer:'El vídeo y los puntos corporales se analizan en este dispositivo/);
+  assert.match(main,/Video and body landmarks are analysed on this device/);
   for (const theme of ['oled','ocean','forest','sunset','lavender']) assert.match(main,new RegExp(theme));
   assert.match(main,/data-palette=palette/);
   assert.match(main,/Vista previa local · sin grabación/);

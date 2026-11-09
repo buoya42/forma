@@ -458,7 +458,7 @@ function sessionPage() {
     <div class="session-panel"><div class="session-count">Movimiento ${s.currentIndex+1} / ${s.workout.exercises.length}</div><h2 class="session-exercise">${esc(exercise.name)}</h2><p class="session-desc">${esc(categoryName(exercise.category))} · ${esc(exercise.pattern||'Movimiento')}${item.weight?` · ${esc(item.weight)} kg`:''}</p><div class="session-visual" data-illustration><div class="exercise-glyph">${icon('activity')}</div></div>
       <div class="session-metrics"><div class="session-metric"><strong>${count}${targetSets?` / ${targetSets}`:''}</strong><small>${esc(t('sets'))}</small></div><div class="session-metric"><strong>${item.reps?esc(item.reps):item.duration?`${esc(item.duration)}s`:'—'}</strong><small>${item.reps?esc(t('repetitions')):item.duration?'Duración':esc(t('noGoal'))}</small></div><div class="session-metric"><strong id="session-clock">${formatDuration(elapsed)}</strong><small>Tiempo total</small></div></div>
       <div class="session-progress"><span style="width:${Math.min(100,progress)}%"></span></div><div class="session-controls" style="margin-top:20px"><button class="button secondary" data-action="session-previous" ${s.currentIndex===0?'disabled':''}>${icon('back')}${esc(t('previous'))}</button><button class="button primary" data-action="complete-set">${icon('check')}${esc(t('completeSet'))}</button><button class="button secondary" data-action="session-next">${esc(t('next'))}${icon('arrow')}</button></div>
-      <div class="session-controls" style="margin-top:10px"><button class="button ghost small" data-action="session-pause">${icon(s.paused?'play':'pause')}${esc(s.paused?t('resume'):t('pause'))}</button><button class="button ghost small" data-action="rest-from-exercise">${icon('timer')} Descansar ${esc(item.rest??60)}s</button><button class="button ghost small" data-action="open-camera" data-id="${esc(exercise.id)}">${icon('camera')} Cámara y repeticiones</button><button class="button ghost small" data-action="undo" ${!s.history?.length?'disabled':''}>${icon('undo')}${esc(t('undo'))}</button><button class="button danger small" data-action="finish-session">${esc(t('finish'))}</button></div>
+      <div class="session-controls" style="margin-top:10px"><button class="button ghost small" data-action="session-pause">${icon(s.paused?'play':'pause')}${esc(s.paused?t('resume'):t('pause'))}</button><button class="button ghost small" data-action="rest-from-exercise">${icon('timer')} Descansar ${esc(item.rest??60)}s</button>${POSE_EXERCISES[exercise.id]?`<button class="button ghost small" data-action="open-camera" data-id="${esc(exercise.id)}">${icon('camera')} Cámara y repeticiones</button>`:''}<button class="button ghost small" data-action="undo" ${!s.history?.length?'disabled':''}>${icon('undo')}${esc(t('undo'))}</button><button class="button danger small" data-action="finish-session">${esc(t('finish'))}</button></div>
     </div>
     <div class="section-head"><div><h2>Indicaciones</h2><p>Consulta los puntos clave del movimiento</p></div><button class="button ghost small" data-action="exercise-detail" data-id="${esc(exercise.id)}">Ver ficha completa</button></div>
     <div class="surface pad"><strong style="font-size:13px">Posición inicial</strong><p class="small-text">${esc(exercise.start||'Consulta una posición cómoda y estable.')}</p><div class="divider"></div><strong style="font-size:13px">Respiración</strong><p class="small-text">${esc(exercise.breathing||'Respira de forma continua.')}</p><div class="divider"></div><strong style="font-size:13px">Siguiente</strong><p class="small-text">${esc(getExercise(s.workout.exercises[s.currentIndex+1]?.exerciseId)?.name||'Fin de la lista')}</p></div>
@@ -523,11 +523,12 @@ function cameraModalBody() {
   const cameraView=config?(state.preferences.language==='en'?config.viewEn:config.view):'';
   const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;
   const canLog=Boolean(state.activeSession&&activeId===cameraExerciseId&&cameraRepTracker.count>0);
-  const status=cameraPoseError||(cameraModelLoading?'Descargando motor y modelo de postura…':cameraAnalysisActive?(cameraPoseMetrics?.feedback||'Preparando seguimiento…'):cameraStream?'Vista previa activa. Acepta las métricas para iniciar el análisis.':'La cámara permanece apagada hasta que la actives.');
+  const en=state.preferences.language==='en';
+  const status=cameraPoseError||(cameraModelLoading?(en?'Loading pose model…':'Descargando motor y modelo de postura…'):cameraAnalysisActive?(cameraPoseMetrics?.feedback||(en?'Preparing tracking…':'Preparando seguimiento…')):cameraStream?(en?'Preview is active. Accept the metrics consent to start tracking.':'Vista previa activa. Acepta las métricas para iniciar el análisis.'):(en?'Camera is off until you enable it.':'La cámara permanece apagada hasta que la actives.'));
   const preview=cameraStream
     ? '<div class="camera-frame" style="margin-top:14px"><video id="camera-video" autoplay playsinline muted></video><canvas id="pose-overlay" aria-hidden="true"></canvas><div class="camera-overlay"></div><span class="camera-badge">'+(cameraAnalysisActive?'Pose tracking · local':'Vista previa local · sin grabación')+'</span></div>'
     : '<div class="camera-frame camera-placeholder" style="margin-top:14px"><div>'+icon('camera')+'</div><strong>Vista previa desactivada</strong><small>Activa la cámara cuando estés preparado.</small></div>';
-  const consent='<label class="camera-consent"><input id="camera-metrics-consent" type="checkbox" '+(cameraMetricsConsent?'checked':'')+'><span><strong>Consentimiento de métricas técnicas</strong><small>Acepto que MediaPipe pueda enviar métricas técnicas agregadas de uso y rendimiento a Google. El vídeo y los puntos corporales se procesan en este dispositivo y no se suben.</small></span></label>';
+  const consent=en?'<label class="camera-consent"><input id="camera-metrics-consent" type="checkbox" '+(cameraMetricsConsent?'checked':'')+'><span><strong>Technical metrics consent</strong><small>I agree that MediaPipe may send aggregated technical usage and performance metrics to Google. Video and body landmarks are processed on this device and are not uploaded.</small></span></label>':'<label class="camera-consent"><input id="camera-metrics-consent" type="checkbox" '+(cameraMetricsConsent?'checked':'')+'><span><strong>Consentimiento de métricas técnicas</strong><small>Acepto que MediaPipe pueda enviar métricas técnicas agregadas de uso y rendimiento a Google. El vídeo y los puntos corporales se procesan en este dispositivo y no se suben.</small></span></label>';
   const start=cameraStream
     ? (cameraAnalysisActive?'<button class="button secondary" data-action="camera-analysis-stop">Pausar análisis</button>':'<button class="button primary" data-action="camera-analysis-start" '+(cameraModelLoading?'disabled':'')+'>Iniciar análisis</button>')
     : '<button class="button primary" data-action="camera-start">'+icon('camera')+esc(t('cameraStart'))+'</button>';
@@ -537,7 +538,7 @@ function cameraModalBody() {
     '<div class="camera-tools"><div class="field"><label for="camera-exercise">Movimiento que quieres contar</label><select id="camera-exercise">'+exerciseOptions+'</select><small class="field-hint">'+esc(cameraView)+'</small></div>'+
     '<div class="camera-stats"><div class="camera-stat"><small>REPETICIONES</small><strong id="camera-rep-count">'+cameraRepTracker.count+'</strong></div><div class="camera-stat"><small>ÁNGULO ESTIMADO</small><strong id="camera-angle">'+(cameraPoseMetrics?.angle??'—')+(cameraPoseMetrics?.angle===undefined?'':'°')+'</strong></div><div class="camera-stat"><small>SEGUIMIENTO</small><strong id="camera-phase">'+(cameraPoseMetrics?.visible?'Activo':'—')+'</strong></div></div>'+
     '<p class="camera-status" id="camera-status" aria-live="polite">'+esc(status)+'</p>'+consent+
-    '<p class="camera-guidance">Deja el móvil estable, busca buena luz y mantén visibles las articulaciones necesarias. El contador es orientativo, no sustituye la supervisión profesional.</p>'+
+    '<p class="camera-guidance">'+(en?'Keep the phone steady, use good lighting and keep the required joints visible. Counts are estimates and are not a professional form assessment.':'Deja el móvil estable, busca buena luz y mantén visibles las articulaciones necesarias. El contador es orientativo, no sustituye la supervisión profesional.')+'</p>'+
     '<div class="form-actions"><button class="button ghost" data-action="close-modal">'+esc(t('close'))+'</button>'+stop+start+log+'</div></div>';
 }
 
@@ -576,6 +577,7 @@ function renderModal() {
     body=body.replace('Los datos del resumen proceden de las acciones que has registrado durante la sesión.',totalReps?'Repeticiones estimadas registradas: '+totalReps+'. '+esc(repLines):'Los datos del resumen proceden de las acciones que has registrado durante la sesión.');
   } else if (modal.type==='camera') {
     title=t('camera'); subtitle=t('cameraPreview'); body=cameraModalBody();
+  }
   return `<div class="modal-backdrop" data-action="backdrop-close"><section class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" data-no-gesture><div class="sheet-handle"></div><div class="sheet-head"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="sheet-close" data-action="close-modal" aria-label="${esc(t('close'))}">${icon('close')}</button></div>${body}</section></div>`;
 }
 
@@ -687,10 +689,13 @@ function playTone() {
     osc.frequency.value=740;gain.gain.value=.035;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.16);osc.onended=()=>ctx.close();
   } catch { /* audio is optional */ }
 }
-function stopPoseAnalysis() {
-  cameraGeneration+=1;cameraAnalysisActive=false;cameraModelLoading=false;
+function pausePoseAnalysis() {
+  cameraAnalysisActive=false;
   if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
   cameraAnimationFrame=null;
+}
+function stopPoseAnalysis() {
+  cameraGeneration+=1;pausePoseAnalysis();cameraModelLoading=false;
   if(cameraPoseLandmarker){try{cameraPoseLandmarker.close();}catch(error){console.warn('No se pudo cerrar el modelo de postura',error);}}
   cameraPoseLandmarker=null;cameraPoseMetrics=null;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;
 }
@@ -747,7 +752,8 @@ function startPoseLoop() {
 async function startPoseAnalysis() {
   if(!cameraStream){toast('Activa la cámara primero.','error');return;}
   if(!cameraMetricsConsent){toast('Necesitas aceptar las métricas técnicas para iniciar MediaPipe.','error');return;}
-  if(cameraPoseLandmarker||cameraModelLoading)return;
+  if(cameraPoseLandmarker){cameraAnalysisActive=true;cameraLastVideoTime=-1;renderPage();startPoseLoop();return;}
+  if(cameraModelLoading)return;
   const generation=++cameraGeneration;cameraModelLoading=true;cameraPoseError='';updateCameraStatus('Descargando el motor de postura y el modelo ligero…');
   try{
     const landmarker=await createPoseLandmarker();
@@ -950,10 +956,10 @@ root.addEventListener('click', async event => {
     case 'export': downloadJSON();break;
     case 'import': root.querySelector('#import-file')?.click();break;
     case 'clear-data': if(confirm('Esto eliminará las plantillas, sesiones, preferencias y agenda guardadas en este navegador. Esta acción no se puede deshacer. ¿Continuar?')){await store.clear();state=defaultState();onboardingStep=0;view='onboarding';persist();renderPage();toast('Datos locales borrados.');}break;
-    case 'open-camera': cameraExerciseId=POSE_EXERCISES[actionEl.dataset.id]?actionEl.dataset.id:(state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId||'squat');cameraRepTracker=createRepCounter();cameraMetricsConsent=false;cameraPoseError='';openModal('camera',{exerciseId:cameraExerciseId});break;
+    case 'open-camera': {const requested=actionEl.dataset.id||state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;cameraExerciseId=POSE_EXERCISES[requested]?requested:'squat';cameraRepTracker=createRepCounter();cameraMetricsConsent=false;cameraPoseError='';openModal('camera',{exerciseId:cameraExerciseId});break;}
     case 'camera-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startCamera();break;
     case 'camera-analysis-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startPoseAnalysis();break;
-    case 'camera-analysis-stop': stopPoseAnalysis();renderPage();break;
+    case 'camera-analysis-stop': pausePoseAnalysis();renderPage();break;
     case 'camera-log-set': {const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;const reps=cameraRepTracker.count;if(!state.activeSession||activeId!==cameraExerciseId||reps<1){toast('No hay una serie compatible para registrar.','error');break;}cameraRepTracker=createRepCounter();cameraPoseMetrics=null;updateSession(s=>completeSet(s,Date.now(),reps));toast('Serie registrada con '+reps+' repeticiones estimadas.');break;}
     case 'camera-stop': stopCamera();renderPage();break;
     case 'summary-close': modal=null;navigate('progress');break;
