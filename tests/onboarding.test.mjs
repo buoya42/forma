@@ -29,7 +29,8 @@ test('existing saved installs skip onboarding and first-run motion respects redu
   const main=await readFile(resolve(root,'src/main.js'),'utf8');
   const css=await readFile(resolve(root,'src/styles.css'),'utf8');
   assert.match(main,/if\(firstRun\) state\.onboardingComplete=false/);
-  assert.match(main,/else if\(typeof state\.onboardingComplete!=='boolean'\) state\.onboardingComplete=true/);
+  assert.match(main,/const hasOnboardingFlag=Boolean\(savedState\) && typeof savedState\.onboardingComplete === 'boolean'/);
+  assert.match(main,/else if\(!hasOnboardingFlag\) state\.onboardingComplete=true/);
   assert.match(css,/@keyframes onboarding-orbit/);
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.match(css,/data-motion="off"/);
