@@ -19,6 +19,15 @@ input,select,textarea{width:100%;background:var(--bg-2);border:1px solid var(--l
 @media(orientation:landscape) and (max-height:560px){.app-layout{padding-top:8px}.topbar{padding:8px 0}.session-panel{padding:15px}.session-visual{height:75px;margin:8px}.session-visual .exercise-glyph{width:65px;height:65px;border-radius:20px}.session-visual svg{width:34px;height:34px}.session-metrics{margin:10px 0}.modal-backdrop{align-items:center}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
+/* Color palettes are independent from the Liquid Glass / Material interface family. */
+html[data-palette="oled"]{color-scheme:dark;--bg:#000;--bg-2:#030303;--surface:rgba(8,8,8,.96);--surface-solid:#050505;--surface-2:#101010;--line:rgba(255,255,255,.11);--text:#f5f5f5;--muted:#a4a4a4;--subtle:#737373;--accent:#8de8ef;--accent-strong:#38cbd7;--accent-soft:rgba(80,220,230,.12);--pink:#e7a0d2;--shadow:0 20px 60px rgba(0,0,0,.72)}
+html[data-palette="oled"] body{background:#000}
+html[data-palette="oled"] .mobile-nav{background:rgba(0,0,0,.94)}
+html[data-palette="ocean"]{color-scheme:dark;--bg:#071923;--bg-2:#0a2230;--surface:rgba(14,43,57,.88);--surface-solid:#102b39;--surface-2:#173b4b;--line:rgba(143,211,230,.15);--text:#e7f6fa;--muted:#9bbdc8;--subtle:#6f96a4;--accent:#65d7e8;--accent-strong:#23a9c2;--accent-soft:rgba(101,215,232,.13);--pink:#b7a2ee;--shadow:0 22px 70px rgba(0,0,0,.34)}
+html[data-palette="forest"]{color-scheme:dark;--bg:#101d18;--bg-2:#17271f;--surface:rgba(29,48,37,.88);--surface-solid:#203529;--surface-2:#2b4535;--line:rgba(190,226,190,.14);--text:#edf6ec;--muted:#b1c6ae;--subtle:#829b7f;--accent:#a8e0a0;--accent-strong:#6ebd78;--accent-soft:rgba(168,224,160,.13);--pink:#e5b6a6;--shadow:0 22px 70px rgba(0,0,0,.32)}
+html[data-palette="sunset"]{color-scheme:dark;--bg:#211612;--bg-2:#2a1b17;--surface:rgba(54,35,29,.88);--surface-solid:#38251e;--surface-2:#4b3026;--line:rgba(255,211,181,.14);--text:#fff0e6;--muted:#d1b3a2;--subtle:#a78675;--accent:#ffb27f;--accent-strong:#e98658;--accent-soft:rgba(255,178,127,.14);--pink:#ef9fc0;--shadow:0 22px 70px rgba(0,0,0,.35)}
+html[data-palette="lavender"]{color-scheme:dark;--bg:#1b1727;--bg-2:#241e33;--surface:rgba(43,35,61,.88);--surface-solid:#2b2340;--surface-2:#3a3052;--line:rgba(218,202,255,.15);--text:#f4efff;--muted:#c0b4d7;--subtle:#9284ae;--accent:#c9a9ff;--accent-strong:#a17be8;--accent-soft:rgba(201,169,255,.14);--pink:#f0a9d2;--shadow:0 22px 70px rgba(0,0,0,.36)}
+
 [data-illustration].zoomed{transform:scale(1.12);transition:transform .22s ease;cursor:zoom-out}
 
 .sheet.expanded{max-height:96vh}
