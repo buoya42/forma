@@ -295,16 +295,31 @@ function exercisesPage() {
     <div class="small-text" style="margin-top:14px">${filteredExercises().length} movimientos disponibles · Las ilustraciones son esquemáticas; no son vídeos.</div>`;
 }
 
+function getRecordedTrainingStats(completed) {
+  const byExercise=new Map();let totalReps=0,weightedVolume=0;
+  for(const session of completed){
+    for(const entry of (session.setLog||[])){
+      const reps=Number(entry.reps);if(!Number.isFinite(reps)||reps<=0)continue;
+      const movement=session.workout?.exercises?.[entry.index];if(!movement?.exerciseId)continue;
+      const exercise=getExercise(movement.exerciseId),id=movement.exerciseId,weight=Number(movement.weight)>0?Number(movement.weight):null;
+      totalReps+=reps;if(weight!==null)weightedVolume+=weight*reps;
+      const current=byExercise.get(id)||{id,name:exercise?.name||id,bestReps:0,bestLoad:0,trackedSets:0};
+      current.bestReps=Math.max(current.bestReps,reps);current.bestLoad=Math.max(current.bestLoad,weight||0);current.trackedSets+=1;byExercise.set(id,current);
+    }
+  }
+  return {totalReps,weightedVolume,records:[...byExercise.values()].sort((a,b)=>b.bestLoad-a.bestLoad||b.bestReps-a.bestReps).slice(0,5)};
+}
 function progressPage() {
   const completed = [...state.sessions].filter(s=>s.status==='completed'||s.status==='ended-early').sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
   const weekly = completed.filter(s=>Date.now()-new Date(s.completedAt).getTime()<=7*86400000);
   const totalMs = completed.reduce((n,s)=>n+(s.durationMs||0),0);
   const totalSets = completed.reduce((n,s)=>n+Object.values(s.completed||{}).reduce((a,b)=>a+b,0),0);
+  const records=getRecordedTrainingStats(completed);
   const days = Array.from({length:7},(_,i)=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d;});
   const counts = days.map(d=>completed.filter(s=>dateKey(new Date(s.completedAt))===dateKey(d)).length);
   const max = Math.max(1,...counts);
   return `<div class="toolbar" style="justify-content:space-between;margin-bottom:18px"><div class="tab-row"><button class="tab ${progressTab==='overview'?'active':''}" data-progress-tab="overview">Resumen</button><button class="tab ${progressTab==='calendar'?'active':''}" data-progress-tab="calendar">${esc(t('calendar'))}</button><button class="tab ${progressTab==='history'?'active':''}" data-progress-tab="history">${esc(t('history'))}</button></div><button class="button secondary small" data-action="open-calendar">${icon('calendar')} ${esc(t('schedule'))}</button></div>
-    ${progressTab==='calendar'?calendarContent():progressTab==='history'?historyContent(completed):`<div class="grid three">${metric('Sesiones totales',String(completed.length),'Sesiones registradas','activity')}${metric('Tiempo activo',formatDuration(totalMs),'Tiempo acumulado','clock')}${metric('Series completadas',String(totalSets),'Registro manual','check')}</div>
+    ${progressTab==='calendar'?calendarContent():progressTab==='history'?historyContent(completed):`<div class="grid three">${metric('Sesiones totales',String(completed.length),'Sesiones registradas','activity')}${metric('Tiempo activo',formatDuration(totalMs),'Tiempo acumulado','clock')}${metric('Series completadas',String(totalSets),'Registro manual','check')}</div><div class="grid three" style="margin-top:12px">${metric('Repeticiones registradas',String(records.totalReps),'Entrada manual o estimación de cámara','activity')}${metric('Carga × reps',records.weightedVolume.toFixed(1),'Solo series con carga y reps guardadas','dumbbell')}${metric('Movimientos con datos',String(records.records.length),'Registros con repeticiones','chart')}</div>${records.records.length?`<section class="surface pad" style="margin-top:16px"><div class="section-head" style="margin:0 0 10px"><div><h2>Mejores registros</h2><p>Máxima carga y repeticiones por movimiento, según lo guardado</p></div></div>${records.records.map(item=>`<div class="data-row"><span class="small-text"><strong>${esc(item.name)}</strong><br><span class="muted">${item.trackedSets} series con reps</span></span><strong>${item.bestReps} reps · ${item.bestLoad?item.bestLoad+' kg':'sin carga'}</strong></div>`).join('')}</section>`:''}
     <div class="grid two" style="margin-top:18px"><section class="surface pad"><div class="section-head" style="margin:0"><div><h2>Actividad de los últimos 7 días</h2><p>Sesiones registradas, no objetivos</p></div></div><div class="week-bars">${days.map((d,i)=>`<div class="week-day"><div class="bar-track"><div class="bar-fill" style="height:${counts[i] ? counts[i]/max*100 : 2}%"></div></div><small>${new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','')}</small></div>`).join('')}</div></section><section class="surface pad"><h2 style="font:700 16px var(--font-head);margin:0 0 8px">Constancia reciente</h2><div class="metric-value">${weekly.length} <span class="small-text">sesiones / 7 días</span></div><p class="small-text">La constancia se muestra como actividad registrada, sin rachas obligatorias ni penalizaciones por descanso.</p><div class="progress-line"><span style="width:${Math.min(100,weekly.length/7*100)}%"></span></div><div class="divider"></div><p class="small-text">Se guardan sesiones completadas o finalizadas antes de tiempo. No se generan datos automáticamente.</p></section></div>
     <div class="section-head"><div><h2>Últimas sesiones</h2><p>Historial guardado en este dispositivo</p></div></div>${completed.length?historyContent(completed.slice(0,5)):empty(t('noProgress'),t('noProgressText'),'new-workout',t('createFirst'))}`}`;
 }
@@ -445,19 +460,29 @@ function syncOnboardingFormToState() {
   onboardingNotificationsRequested = fd.get('notifications') === 'on';
 }
 
+function warmupPage(session) {
+  const steps=[['Marcha suave','60 segundos de movimiento cómodo para elevar gradualmente la temperatura.'],['Movilidad de hombros y brazos','Círculos pequeños y controlados, sin forzar el recorrido.'],['Movilidad de cadera y tobillos','Explora rangos cómodos con apoyo estable si lo necesitas.'],['Ensayo del primer patrón','Haz unas repeticiones suaves del primer ejercicio, sin buscar fatiga.']];
+  return `<div class="session-shell"><div class="session-top"><span class="tag">${esc(session.workoutName)}</span><span class="tag">Antes de entrenar</span></div><section class="session-panel"><div class="session-count">FASE DE CALENTAMIENTO</div><h2 class="session-exercise">Prepara el cuerpo, sin prisas.</h2><p class="session-desc">Un calentamiento breve y progresivo. Mantén cada movimiento cómodo y detente si aparece dolor o mareo.</p></section><div class="surface pad" style="margin-top:16px"><div class="list">${steps.map(([title,description],i)=>`<div class="list-item"><div class="exercise-glyph">${i+1}</div><div class="list-item-main"><strong>${esc(title)}</strong><small>${esc(description)}</small></div></div>`).join('')}</div></div><div class="form-actions" style="margin-top:16px"><button class="button ghost" data-action="warmup-skip">Omitir calentamiento</button><button class="button primary" data-action="warmup-start">${icon('play')} Empezar entrenamiento</button></div></div>`;
+}
 function sessionPage() {
   const s=state.activeSession;
+  if(s?.phase==='warmup')return warmupPage(s);
   if (!s) return empty('No hay una sesión activa','Elige una plantilla de entrenamiento para empezar.','go-workouts',t('workouts'));
   const item=s.workout.exercises[s.currentIndex];
   const exercise=getExercise(item.exerciseId) || {name:'Ejercicio personalizado',steps:[],start:'',breathing:'',safety:''};
   const elapsed=elapsedMilliseconds(s);
   const count=s.completed[s.currentIndex]||0;
-  const targetSets=Number(item.sets)||0;
-  const progress=(s.currentIndex+(targetSets?Math.min(1,count/targetSets):0))/s.workout.exercises.length*100;
+  const isCircuit=s.workout.structure==='circuit';
+  const rounds=isCircuit?Math.max(1,Number(s.rounds||s.workout.rounds)||1):1;
+  const targetSets=Number(item.sets)||(isCircuit?1:0);
+  const totalTarget=targetSets*(isCircuit?rounds:1);
+  const overallDone=s.workout.exercises.reduce((sum,entry,index)=>sum+(s.completed[index]||0),0);
+  const overallTarget=s.workout.exercises.reduce((sum,entry)=>sum+(Number(entry.sets)||(isCircuit?1:0))*(isCircuit?rounds:1),0);
+  const progress=isCircuit&&overallTarget?Math.min(100,overallDone/overallTarget*100):(s.currentIndex+(targetSets?Math.min(1,count/targetSets):0))/s.workout.exercises.length*100;
   return `<div class="session-shell"><div class="session-top"><button class="button ghost small" data-action="leave-session">${icon('back')} Volver</button><span class="tag">${esc(s.workoutName)}</span><button class="icon-button" data-action="open-timer" aria-label="Temporizador">${icon('timer')}</button></div>
-    <div class="session-panel"><div class="session-count">Movimiento ${s.currentIndex+1} / ${s.workout.exercises.length}</div><h2 class="session-exercise">${esc(exercise.name)}</h2><p class="session-desc">${esc(categoryName(exercise.category))} · ${esc(exercise.pattern||'Movimiento')}${item.weight?` · ${esc(item.weight)} kg`:''}</p><div class="session-visual" data-illustration><div class="exercise-glyph">${icon('activity')}</div></div>
-      <div class="session-metrics"><div class="session-metric"><strong>${count}${targetSets?` / ${targetSets}`:''}</strong><small>${esc(t('sets'))}</small></div><div class="session-metric"><strong>${item.reps?esc(item.reps):item.duration?`${esc(item.duration)}s`:'—'}</strong><small>${item.reps?esc(t('repetitions')):item.duration?'Duración':esc(t('noGoal'))}</small></div><div class="session-metric"><strong id="session-clock">${formatDuration(elapsed)}</strong><small>Tiempo total</small></div></div>
-      <div class="session-progress"><span style="width:${Math.min(100,progress)}%"></span></div><div class="session-controls" style="margin-top:20px"><button class="button secondary" data-action="session-previous" ${s.currentIndex===0?'disabled':''}>${icon('back')}${esc(t('previous'))}</button><button class="button primary" data-action="complete-set">${icon('check')}${esc(t('completeSet'))}</button><button class="button secondary" data-action="session-next">${esc(t('next'))}${icon('arrow')}</button></div>
+    <div class="session-panel"><div class="session-count">Movimiento ${s.currentIndex+1} / ${s.workout.exercises.length}${isCircuit?` · VUELTA ${s.currentRound||1} / ${rounds}`:''}</div><h2 class="session-exercise">${esc(exercise.name)}</h2><p class="session-desc">${esc(categoryName(exercise.category))} · ${esc(exercise.pattern||'Movimiento')}${item.weight?` · ${esc(item.weight)} kg`:''}</p><div class="session-visual" data-illustration><div class="exercise-glyph">${icon('activity')}</div></div>
+      <div class="session-metrics"><div class="session-metric"><strong>${count}${totalTarget?` / ${totalTarget}`:''}</strong><small>${esc(t('sets'))}</small></div><div class="session-metric"><strong>${item.reps?esc(item.reps):item.duration?`${esc(item.duration)}s`:'—'}</strong><small>${item.reps?esc(t('repetitions')):item.duration?'Duración':esc(t('noGoal'))}</small></div><div class="session-metric"><strong id="session-clock">${formatDuration(elapsed)}</strong><small>Tiempo total</small></div></div>
+      <div class="session-progress"><span style="width:${Math.min(100,progress)}%"></span></div><div class="field session-rep-field"><label for="session-actual-reps">Repeticiones realizadas (opcional)</label><input id="session-actual-reps" type="number" min="1" max="500" inputmode="numeric" placeholder="Solo si quieres registrarlas" /></div><div class="session-controls" style="margin-top:20px"><button class="button secondary" data-action="session-previous" ${s.currentIndex===0?'disabled':''}>${icon('back')}${esc(t('previous'))}</button><button class="button primary" data-action="complete-set">${icon('check')}${esc(t('completeSet'))}</button><button class="button secondary" data-action="session-next">${esc(t('next'))}${icon('arrow')}</button></div>
       <div class="session-controls" style="margin-top:10px"><button class="button ghost small" data-action="session-pause">${icon(s.paused?'play':'pause')}${esc(s.paused?t('resume'):t('pause'))}</button><button class="button ghost small" data-action="rest-from-exercise">${icon('timer')} Descansar ${esc(item.rest??60)}s</button>${POSE_EXERCISES[exercise.id]?`<button class="button ghost small" data-action="open-camera" data-id="${esc(exercise.id)}">${icon('camera')} Cámara y repeticiones</button>`:''}<button class="button ghost small" data-action="undo" ${!s.history?.length?'disabled':''}>${icon('undo')}${esc(t('undo'))}</button><button class="button danger small" data-action="finish-session">${esc(t('finish'))}</button></div>
     </div>
     <div class="section-head"><div><h2>Indicaciones</h2><p>Consulta los puntos clave del movimiento</p></div><button class="button ghost small" data-action="exercise-detail" data-id="${esc(exercise.id)}">Ver ficha completa</button></div>
@@ -553,7 +578,7 @@ function renderModal() {
     body=`<div class="exercise-glyph" data-illustration style="width:72px;height:72px;border-radius:24px;margin-bottom:12px">${icon('activity')}</div>${sections.map(([h,v])=>`<section class="detail-section"><h3>${esc(h)}</h3>${Array.isArray(v)?`<ul>${v.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<p>${esc(v||'No hay información adicional.')}</p>`}</section>`).join('')}${exerciseSessions.length?`<section class="detail-section"><h3>Sesiones donde aparece</h3><ul>${exerciseSessions.map(s=>`<li>${esc(s.workoutName)} · ${esc(formatDate(s.completedAt))}</li>`).join('')}</ul></section>`:''}<div class="form-actions"><button class="button secondary" data-action="favorite" data-id="${esc(e.id)}">${icon('bookmark')}${state.favorites.includes(e.id)?'Quitar de favoritos':'Guardar en favoritos'}</button>${state.customExercises.some(x=>x.id===e.id)?`<button class="button ghost" data-action="edit-exercise" data-id="${esc(e.id)}">Editar</button><button class="button danger small" data-action="delete-custom-exercise" data-id="${esc(e.id)}">Eliminar</button>`:`<button class="button ghost small" data-action="hide-exercise" data-id="${esc(e.id)}">Ocultar</button>`}<button class="button primary" data-action="close-modal">${esc(t('close'))}</button></div>`;
   } else if (modal.type==='builder') {
     const d=builderDraft; title=modal.presetTitle?`Personalizar ${modal.presetTitle}`:(d.id?'Editar entrenamiento':'Nuevo entrenamiento'); subtitle=modal.presetTitle?'Revisa la selección y ajusta objetivos, pausas y notas antes de guardar.':'Configura la estructura y los objetivos de cada movimiento.';
-    body=`<form data-form="builder"><div class="field"><label for="builder-name">${esc(t('workoutName'))}</label><input id="builder-name" name="name" required maxlength="70" value="${esc(d.name)}" placeholder="Ej. Fuerza y movilidad" /></div><div class="form-grid" style="margin-top:12px"><div class="field"><label for="builder-structure">${esc(t('structure'))}</label><select id="builder-structure" name="structure"><option value="reps" ${d.structure==='reps'?'selected':''}>Repeticiones</option><option value="time" ${d.structure==='time'?'selected':''}>Por tiempo</option><option value="circuit" ${d.structure==='circuit'?'selected':''}>Circuito</option><option value="custom" ${d.structure==='custom'?'selected':''}>Personalizada</option></select></div><div class="field"><label for="builder-notes">Notas generales</label><input id="builder-notes" name="notes" value="${esc(d.notes||'')}" maxlength="500" placeholder="Opcional" /></div></div>
+    body=`<form data-form="builder"><div class="field"><label for="builder-name">${esc(t('workoutName'))}</label><input id="builder-name" name="name" required maxlength="70" value="${esc(d.name)}" placeholder="Ej. Fuerza y movilidad" /></div><div class="form-grid" style="margin-top:12px"><div class="field"><label for="builder-structure">${esc(t('structure'))}</label><select id="builder-structure" name="structure"><option value="reps" ${d.structure==='reps'?'selected':''}>Repeticiones</option><option value="time" ${d.structure==='time'?'selected':''}>Por tiempo</option><option value="circuit" ${d.structure==='circuit'?'selected':''}>Circuito</option><option value="custom" ${d.structure==='custom'?'selected':''}>Personalizada</option></select></div><div class="field"><label for="builder-notes">Notas generales</label><input id="builder-notes" name="notes" value="${esc(d.notes||'')}" maxlength="500" placeholder="Opcional" /></div></div><div class="field ${d.structure==='circuit'?'':'hidden'}" id="builder-rounds-field" style="margin-top:12px"><label for="builder-rounds">Vueltas del circuito</label><input id="builder-rounds" name="rounds" type="number" min="1" max="20" value="${Math.min(20,Math.max(1,Number(d.rounds)||1))}" /><small class="field-hint">Cada movimiento avanza automáticamente al completar sus series; al terminar la lista comienza la siguiente vuelta.</small></div>
       <div class="section-head"><div><h2>Movimientos (${d.exercises.length})</h2><p>Los objetivos vacíos quedan como registro manual.</p></div></div>
       ${d.exercises.length?`<div class="list">${d.exercises.map((x,i)=>{const e=getExercise(x.exerciseId);return `<div class="surface pad" data-exercise-row="${i}"><div class="toolbar" style="justify-content:space-between"><div class="list-item-main"><strong>${esc(e?.name||'Ejercicio eliminado')}</strong><small>${esc(categoryName(e?.category))}</small></div><div class="list-controls"><button type="button" class="icon-button" data-action="builder-up" data-index="${i}" aria-label="Subir" ${i===0?'disabled':''}>↑</button><button type="button" class="icon-button" data-action="builder-down" data-index="${i}" aria-label="Bajar" ${i===d.exercises.length-1?'disabled':''}>↓</button><button type="button" class="icon-button" data-action="builder-remove" data-index="${i}" aria-label="Eliminar">${icon('trash')}</button></div></div><div class="form-grid three" style="margin-top:12px"><div class="field"><label>Series</label><input type="number" min="1" max="30" name="sets-${i}" value="${x.sets??''}" placeholder="Manual" /></div><div class="field"><label>Repeticiones</label><input type="number" min="1" max="500" name="reps-${i}" value="${x.reps??''}" placeholder="Manual" /></div><div class="field"><label>Duración (s)</label><input type="number" min="1" max="7200" name="duration-${i}" value="${x.duration??''}" placeholder="Manual" /></div><div class="field"><label>Descanso (s)</label><input type="number" min="0" max="3600" name="rest-${i}" value="${x.rest??60}" /></div><div class="field"><label>Carga (kg, opcional)</label><input type="number" min="0" max="500" step="0.25" name="weight-${i}" value="${x.weight??''}" placeholder="Sin carga" /></div><div class="field" style="grid-column:span 2"><label>Notas de este movimiento</label><input name="notes-${i}" value="${esc(x.notes||'')}" maxlength="180" placeholder="Opcional" /></div></div></div>`}).join('')}</div>`:`<div class="empty"><h3>${esc(t('noExercisesAdded'))}</h3><p>Busca un movimiento y añádelo a esta plantilla.</p></div>`}
       <div class="toolbar" style="margin-top:14px"><select id="builder-add-select" aria-label="Seleccionar ejercicio"><option value="">Selecciona un movimiento…</option>${getExercises().map(e=>`<option value="${esc(e.id)}">${esc(e.name)}</option>`).join('')}</select><button type="button" class="button secondary" data-action="builder-add">${icon('plus')}${esc(t('addExercise'))}</button></div><div class="field" style="margin-top:14px"><label class="check-row"><input type="checkbox" name="warmup" ${d.warmup?'checked':''}/> Incluir recordatorio de calentamiento</label><label class="check-row"><input type="checkbox" name="cooldown" ${d.cooldown?'checked':''}/> Incluir recordatorio de vuelta a la calma</label></div>
@@ -568,13 +593,17 @@ function renderModal() {
     title=t('timer'); subtitle='Temporizador local; el funcionamiento en segundo plano depende del navegador.';
     const remaining=timerRemaining();
     body=`<div class="timer-ring"><div><div class="timer-face" id="timer-face">${formatDuration(remaining*1000)}</div><div class="eyebrow" style="text-align:center">${state.timer.running?'EN MARCHA':'LISTO'}</div></div></div><form data-form="timer"><div class="field"><label>Duración inicial (segundos)</label><input name="duration" type="number" min="1" max="7200" value="${state.timer.duration}" /></div><div class="form-actions" style="justify-content:center"><button type="button" class="button secondary" data-action="timer-reset">Reiniciar</button><button type="button" class="button secondary" data-action="timer-toggle">${icon(state.timer.running?'pause':'play')}${state.timer.running?'Pausar':'Iniciar'}</button><button type="submit" class="button primary">Aplicar</button></div></form>`;
+  } else if (modal.type==='cooldown') {
+    title='Vuelta a la calma';subtitle='Cierra la sesión sin prisas.';
+    body=`<div class="notice">Has completado el entrenamiento. Dedica unos minutos a caminar suavemente, recuperar una respiración cómoda y mover las zonas trabajadas dentro de un rango agradable. No fuerces estiramientos ni posiciones.</div><div class="list" style="margin-top:14px"><div class="list-item"><div class="exercise-glyph">1</div><div class="list-item-main"><strong>Reduce el ritmo</strong><small>Camina lentamente o quédate de pie respirando con naturalidad.</small></div></div><div class="list-item"><div class="exercise-glyph">2</div><div class="list-item-main"><strong>Movilidad suave</strong><small>Mueve hombros, caderas y tobillos sin buscar amplitudes máximas.</small></div></div><div class="list-item"><div class="exercise-glyph">3</div><div class="list-item-main"><strong>Comprueba cómo te encuentras</strong><small>Termina cuando la respiración y las sensaciones vuelvan a la calma.</small></div></div></div><div class="form-actions"><button class="button ghost" data-action="cooldown-skip">Omitir</button><button class="button primary" data-action="cooldown-finish">Terminar y guardar resumen</button></div>`;
   } else if (modal.type==='summary') {
     const s=modal.session; title='Sesión guardada'; subtitle=s.status==='completed'?'Has terminado esta sesión.':'La sesión se ha guardado como finalizada antes de tiempo.';
     const totalSets=Object.values(s.completed||{}).reduce((a,b)=>a+b,0);
     const totalReps=(s.setLog||[]).reduce((sum,item)=>sum+(Number(item.reps)||0),0);
+    const cameraReps=(s.setLog||[]).filter(item=>item.source==='camera').reduce((sum,item)=>sum+(Number(item.reps)||0),0);
     const repLines=(s.setLog||[]).filter(item=>Number(item.reps)>0).map(item=>{const ex=s.workout.exercises[item.index];return (getExercise(ex?.exerciseId)?.name||'Movimiento')+' · serie '+item.set+': '+item.reps+' reps';}).join(' / ');
     body=`<div class=\"grid three\"><div class=\"metric-card\"><div class=\"metric-label\">Tiempo</div><div class=\"metric-value\">${esc(formatDuration(s.durationMs||0))}</div></div><div class=\"metric-card\"><div class=\"metric-label\">Series registradas</div><div class=\"metric-value\">${totalSets}</div></div><div class=\"metric-card\"><div class=\"metric-label\">Movimientos</div><div class=\"metric-value\">${s.workout.exercises.length}</div></div></div><div class=\"notice\" style=\"margin-top:15px\">Los datos del resumen proceden de las acciones que has registrado durante la sesión.</div><div class=\"form-actions\"><button class=\"button primary\" data-action=\"summary-close\">Ver progreso</button></div>`;
-    body=body.replace('Los datos del resumen proceden de las acciones que has registrado durante la sesión.',totalReps?'Repeticiones estimadas registradas: '+totalReps+'. '+esc(repLines):'Los datos del resumen proceden de las acciones que has registrado durante la sesión.');
+    body=body.replace('Los datos del resumen proceden de las acciones que has registrado durante la sesión.',totalReps?('Repeticiones registradas: '+totalReps+'. Estimadas por cámara: '+cameraReps+'. '+esc(repLines)):'Los datos del resumen proceden de las acciones que has registrado durante la sesión.');
   } else if (modal.type==='camera') {
     title=t('camera'); subtitle=t('cameraPreview'); body=cameraModalBody();
   }
@@ -585,12 +614,12 @@ let preSessionView = 'workouts';
 function useWorkoutPreset(presetId) {
   const preset=WORKOUT_PRESETS.find(item=>item.id===presetId);
   if(!preset){toast('No se ha encontrado este preajuste.','error');return;}
-  builderDraft={id:null,name:presetName(preset),structure:preset.structure,exercises:structuredClone(preset.exercises),notes:preset.notes,warmup:false,cooldown:false};
+  builderDraft={id:null,name:presetName(preset),structure:preset.structure,rounds:1,exercises:structuredClone(preset.exercises),notes:preset.notes,warmup:false,cooldown:false};
   openModal('builder',{presetTitle:presetName(preset)});
 }
 function openBuilder(id=null) {
   const existing=state.workouts.find(w=>w.id===id);
-  builderDraft=existing?structuredClone(existing):{id:null,name:'',structure:'custom',exercises:[],notes:'',warmup:false,cooldown:false};
+  builderDraft=existing?{...structuredClone(existing),rounds:existing.rounds||1}:{id:null,name:'',structure:'custom',rounds:1,exercises:[],notes:'',warmup:false,cooldown:false};
   openModal('builder');
 }
 function syncBuilderFromDOM() {
@@ -598,6 +627,7 @@ function syncBuilderFromDOM() {
   const fd=new FormData(form);
   builderDraft.name=String(fd.get('name')||'').trim();
   builderDraft.structure=String(fd.get('structure')||'custom');
+  builderDraft.rounds=builderDraft.structure==='circuit'?Math.min(20,Math.max(1,Math.floor(Number(fd.get('rounds'))||1))):1;
   builderDraft.notes=String(fd.get('notes')||'').trim();
   builderDraft.warmup=fd.has('warmup'); builderDraft.cooldown=fd.has('cooldown');
   builderDraft.exercises=builderDraft.exercises.map((x,i)=>({...x,
@@ -640,10 +670,12 @@ function updateSession(mutator, direction = 0) {
 function finishCurrentSession() {
   if(!state.activeSession)return;
   const s=state.activeSession;
-  const allDone=s.workout.exercises.every((item,index)=>{const target=Number(item.sets)||0;const count=s.completed[index]||0;return target?count>=target:count>0;});
+  const rounds=s.workout.structure==='circuit'?Math.max(1,Number(s.rounds||s.workout.rounds)||1):1;
+  const allDone=s.workout.exercises.every((item,index)=>{const target=Number(item.sets)||0;const count=s.completed[index]||0;return target?count>=target*rounds:s.workout.structure==='circuit'?count>=rounds:count>0;});
   if(!confirm(allDone?'¿Guardar el resumen de esta sesión?':'La sesión aún tiene movimientos pendientes. ¿Quieres finalizarla ahora?'))return;
   const finished=finishSession(s,allDone?'completed':'ended-early');
   state.sessions.unshift(finished); state.activeSession=null; persist();
+  if(allDone&&s.workout.cooldown){modal={type:'cooldown',session:finished};view='progress';progressTab='history';renderPage();return;}
   if(state.preferences.animations!==false)pendingPageAnimation='enter-backward';
   modal={type:'summary',session:finished}; view='progress'; progressTab='history'; renderPage();
 }
@@ -932,7 +964,7 @@ root.addEventListener('click', async event => {
     case 'return-session': preSessionView=view;view='session';renderPage();break;
     case 'leave-session': view=preSessionView==='session'?'workouts':preSessionView;renderPage();break;
     case 'session-pause': updateSession(s=>s.paused?resumeSession(s):pauseSession(s));break;
-    case 'complete-set': updateSession(s=>completeSet(s));if(state.preferences.vibration&&navigator.vibrate)navigator.vibrate(35);break;
+    case 'complete-set': {const value=root.querySelector('#session-actual-reps')?.value;const reps=value?Number(value):null;updateSession(s=>completeSet(s,Date.now(),reps,'manual'));if(state.preferences.vibration&&navigator.vibrate)navigator.vibrate(35);break;}
     case 'undo': updateSession(s=>undoLastAction(s));break;
     case 'session-next': updateSession(s=>moveExercise(s,1),1);break;
     case 'session-previous': updateSession(s=>moveExercise(s,-1),-1);break;
@@ -960,9 +992,11 @@ root.addEventListener('click', async event => {
     case 'camera-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startCamera();break;
     case 'camera-analysis-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startPoseAnalysis();break;
     case 'camera-analysis-stop': pausePoseAnalysis();renderPage();break;
-    case 'camera-log-set': {const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;const reps=cameraRepTracker.count;if(!state.activeSession||activeId!==cameraExerciseId||reps<1){toast('No hay una serie compatible para registrar.','error');break;}cameraRepTracker=createRepCounter();cameraPoseMetrics=null;updateSession(s=>completeSet(s,Date.now(),reps));toast('Serie registrada con '+reps+' repeticiones estimadas.');break;}
+    case 'camera-log-set': {const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;const reps=cameraRepTracker.count;if(!state.activeSession||activeId!==cameraExerciseId||reps<1){toast('No hay una serie compatible para registrar.','error');break;}cameraRepTracker=createRepCounter();cameraPoseMetrics=null;updateSession(s=>completeSet(s,Date.now(),reps,'camera'));toast('Serie registrada con '+reps+' repeticiones estimadas.');break;}
     case 'camera-stop': stopCamera();renderPage();break;
     case 'summary-close': modal=null;navigate('progress');break;
+    case 'warmup-start': case 'warmup-skip': if(state.activeSession){state.activeSession.phase='workout';persist();renderPage();}break;
+    case 'cooldown-finish': case 'cooldown-skip': {const finished=modal?.session;modal=finished?{type:'summary',session:finished}:null;renderPage();break;}
     case 'zoom': actionEl.classList.toggle('zoomed');break;
   }
 });
@@ -997,6 +1031,7 @@ root.addEventListener('change', async event => {
     if(key==='animations')applyTheme();
     toast('Preferencia actualizada.');
   }
+  if(el.id==='builder-structure') {const field=root.querySelector('#builder-rounds-field');if(field)field.classList.toggle('hidden',el.value!=='circuit');}
   if(el.id==='camera-exercise') {cameraExerciseId=POSE_EXERCISES[el.value]?el.value:'squat';cameraRepTracker=createRepCounter();cameraPoseMetrics=null;renderPage();return;}
   if(el.id==='camera-metrics-consent') {cameraMetricsConsent=el.checked;return;}
   if(el.id==='schedule-kind') {

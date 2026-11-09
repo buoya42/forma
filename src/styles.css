@@ -444,3 +444,5 @@ html[data-motion="off"] .onboarding-shell:after,html[data-motion="off"] .onboard
 .camera-tools .form-actions{gap:8px}
 .camera-tools .form-actions .button{flex:1}
 @media(max-width:430px){.camera-stat{padding:10px 7px}.camera-stat strong{font-size:19px}.camera-tools .form-actions{flex-wrap:wrap}.camera-tools .form-actions .button{min-width:calc(50% - 5px)}}
+
+.session-rep-field{max-width:220px;margin:14px auto 0;text-align:left}.session-rep-field input{text-align:center}

@@ -15,7 +15,7 @@ export function startSession(workout, now = Date.now()) {
     id: makeId('session'), workoutId: workout.id, workoutName: workout.name,
     workout: structuredClone(workout), currentIndex: 0, elapsedMs: 0,
     runningSince: now, paused: false, startedAt: new Date(now).toISOString(),
-    completed: {}, history: [], setLog: [], status: 'in-progress'
+    completed: {}, history: [], setLog: [], currentRound: 1, rounds: Math.min(20,Math.max(1,Math.floor(Number(workout.rounds)||1))), phase: workout.warmup?'warmup':'workout', status: 'in-progress'
   };
 }
 
@@ -32,15 +32,28 @@ export function moveExercise(session, delta) {
   const max = Math.max(0, session.workout.exercises.length - 1);
   return { ...session, currentIndex: Math.min(max, Math.max(0, session.currentIndex + delta)) };
 }
-export function completeSet(session, now = Date.now(), reps = null) {
+export function completeSet(session, now = Date.now(), reps = null, source = 'manual') {
   if (!session) return session;
   const index = session.currentIndex;
   const current = session.completed[index] || 0;
+  const validReps=Number.isFinite(Number(reps))&&Number(reps)>0?Math.min(1000,Math.round(Number(reps))):null;
+  const nextCompleted={...session.completed,[index]:current+1};
+  let nextIndex=index,nextRound=session.currentRound||1;
+  if(session.workout.structure==='circuit'){
+    const item=session.workout.exercises[index];
+    const setsPerRound=Math.max(1,Math.min(30,Math.floor(Number(item?.sets)||1)));
+    const rounds=Math.max(1,Math.min(20,Math.floor(Number(session.rounds||session.workout.rounds)||1)));
+    if((current+1)%setsPerRound===0){
+      if(index<session.workout.exercises.length-1)nextIndex=index+1;
+      else if(nextRound<rounds){nextIndex=0;nextRound+=1;}
+    }
+  }
   return {
     ...session,
-    completed: { ...session.completed, [index]: current + 1 },
-    history: [...(session.history || []), { type: 'set', index, previous: current, reps:Number.isFinite(Number(reps))&&Number(reps)>0?Math.min(1000,Math.round(Number(reps))):null, at: now }],
-    setLog: [...(session.setLog || []), { index, set:current+1, reps:Number.isFinite(Number(reps))&&Number(reps)>0?Math.min(1000,Math.round(Number(reps))):null, at: now }]
+    currentIndex:nextIndex,currentRound:nextRound,
+    completed: nextCompleted,
+    history: [...(session.history || []), { type:'set', index, previous:current, previousIndex:index, previousRound:session.currentRound||1, reps:validReps, source:validReps?source:null, at:now }],
+    setLog: [...(session.setLog || []), { index, set:current+1, reps:validReps, source:validReps?source:null, at:now }]
   };
 }
 export function undoLastAction(session) {
@@ -54,7 +67,7 @@ export function undoLastAction(session) {
   }
   const setLog=[...(session.setLog||[])];
   if(last.type==='set'&&setLog.length)setLog.pop();
-  return { ...session, completed, history, setLog };
+  return { ...session, completed, history, setLog, currentIndex:last.previousIndex??last.index??session.currentIndex, currentRound:last.previousRound??session.currentRound??1 };
 }
 export function finishSession(session, status = 'completed', now = Date.now()) {
   if (!session) throw new Error('No hay ninguna sesión activa.');

@@ -99,7 +99,7 @@ function sanitizeWorkout(workout) {
     rest:optionalNumber(x.rest,0,3600) ?? 60, weight:optionalNumber(x.weight,0,500), notes:text(x.notes,180)
   }));
   if (!exercises.length) return null;
-  return {id,name,structure:['reps','time','circuit','custom'].includes(workout.structure)?workout.structure:'custom',exercises,notes:text(workout.notes,500),warmup:Boolean(workout.warmup),cooldown:Boolean(workout.cooldown),createdAt:text(workout.createdAt,40),updatedAt:text(workout.updatedAt,40)};
+  return {id,name,structure:['reps','time','circuit','custom'].includes(workout.structure)?workout.structure:'custom',rounds:Math.min(20,Math.max(1,Math.floor(Number(workout.rounds)||1))),exercises,notes:text(workout.notes,500),warmup:Boolean(workout.warmup),cooldown:Boolean(workout.cooldown),createdAt:text(workout.createdAt,40),updatedAt:text(workout.updatedAt,40)};
 }
 
 export function validateImport(input) {
@@ -116,7 +116,7 @@ export function validateImport(input) {
   const sessions=input.sessions.slice(0,MAX.sessions).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map(s=>({
     id:text(s.id,90),workoutId:text(s.workoutId,90),workoutName:text(s.workoutName,70),workout:sanitizeWorkout(s.workout),
     currentIndex:0,completed:s.completed&&typeof s.completed==='object'?Object.fromEntries(Object.entries(s.completed).slice(0,100).map(([k,v])=>[String(k).slice(0,4),Math.max(0,Math.min(1000,Number(v)||0))])):{},
-    history:[],setLog:Array.isArray(s.setLog)?s.setLog.slice(0,1000).filter(x=>x&&typeof x==='object').map(x=>({index:Math.max(0,Math.min(99,Math.floor(Number(x.index)||0))),set:Math.max(1,Math.min(1000,Math.floor(Number(x.set)||1))),reps:Number.isFinite(Number(x.reps))&&Number(x.reps)>0?Math.min(1000,Math.floor(Number(x.reps))):null,at:text(x.at,40)})):[],status:['completed','ended-early'].includes(s.status)?s.status:'ended-early',durationMs:Math.max(0,Math.min(7*86400000,Number(s.durationMs)||0)),
+    history:[],setLog:Array.isArray(s.setLog)?s.setLog.slice(0,1000).filter(x=>x&&typeof x==='object').map(x=>({index:Math.max(0,Math.min(99,Math.floor(Number(x.index)||0))),set:Math.max(1,Math.min(1000,Math.floor(Number(x.set)||1))),reps:Number.isFinite(Number(x.reps))&&Number(x.reps)>0?Math.min(1000,Math.floor(Number(x.reps))):null,source:['camera','manual'].includes(x.source)?x.source:null,at:text(x.at,40)})):[],status:['completed','ended-early'].includes(s.status)?s.status:'ended-early',durationMs:Math.max(0,Math.min(7*86400000,Number(s.durationMs)||0)),
     startedAt:text(s.startedAt,40),completedAt:text(s.completedAt,40)
   }));
   const schedule=input.schedule.slice(0,MAX.schedule).filter(x=>x&&typeof x==='object'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date||'')).map(x=>({
