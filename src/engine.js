@@ -15,7 +15,7 @@ export function startSession(workout, now = Date.now()) {
     id: makeId('session'), workoutId: workout.id, workoutName: workout.name,
     workout: structuredClone(workout), currentIndex: 0, elapsedMs: 0,
     runningSince: now, paused: false, startedAt: new Date(now).toISOString(),
-    completed: {}, history: [], status: 'in-progress'
+    completed: {}, history: [], setLog: [], status: 'in-progress'
   };
 }
 
@@ -32,14 +32,15 @@ export function moveExercise(session, delta) {
   const max = Math.max(0, session.workout.exercises.length - 1);
   return { ...session, currentIndex: Math.min(max, Math.max(0, session.currentIndex + delta)) };
 }
-export function completeSet(session, now = Date.now()) {
+export function completeSet(session, now = Date.now(), reps = null) {
   if (!session) return session;
   const index = session.currentIndex;
   const current = session.completed[index] || 0;
   return {
     ...session,
     completed: { ...session.completed, [index]: current + 1 },
-    history: [...(session.history || []), { type: 'set', index, previous: current, at: now }]
+    history: [...(session.history || []), { type: 'set', index, previous: current, reps:Number.isFinite(Number(reps))&&Number(reps)>0?Math.min(1000,Math.round(Number(reps))):null, at: now }],
+    setLog: [...(session.setLog || []), { index, set:current+1, reps:Number.isFinite(Number(reps))&&Number(reps)>0?Math.min(1000,Math.round(Number(reps))):null, at: now }]
   };
 }
 export function undoLastAction(session) {
@@ -51,7 +52,9 @@ export function undoLastAction(session) {
     if (last.previous > 0) completed[last.index] = last.previous;
     else delete completed[last.index];
   }
-  return { ...session, completed, history };
+  const setLog=[...(session.setLog||[])];
+  if(last.type==='set'&&setLog.length)setLog.pop();
+  return { ...session, completed, history, setLog };
 }
 export function finishSession(session, status = 'completed', now = Date.now()) {
   if (!session) throw new Error('No hay ninguna sesión activa.');

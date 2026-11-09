@@ -5,6 +5,8 @@ import { GestureController } from './gestures.js';
 import { getDueReminders, getExpiredReminders, getUpcomingReminders, REMINDER_RECHECK_MS } from './reminders.js';
 import { migrateLegacyFluffoNames } from './migrations.js';
 import { detectPlatform, resolveInterfaceStyle } from './platform.js';
+import { POSE_EXERCISES, POSE_CONNECTIONS, createRepCounter, analyzePose } from './pose.js';
+import { createPoseLandmarker } from './pose-runtime.js';
 
 const store = new LocalStore();
 const root = document.querySelector('#app');
@@ -29,7 +31,7 @@ const I18N = {
     calendar:'Calendario', thisMonth:'Este mes', schedule:'Programar', restDay:'Marcar descanso',
     data:'Tus datos', export:'Exportar copia', import:'Importar copia', clear:'Borrar datos locales',
     local:'Privado por diseño', localText:'Tus entrenamientos y preferencias se guardan en este dispositivo.',
-    camera:'Asistencia con cámara', cameraPreview:'Vista previa local', cameraDisclaimer:'La cámara solo muestra una vista previa local en este dispositivo. No se graba ni se envía a ningún servidor. El análisis de postura y el recuento automático todavía no están integrados.',
+    camera:'Asistencia con cámara', cameraPreview:'Vista previa local', cameraDisclaimer:'El vídeo y los puntos corporales se analizan en este dispositivo; no se graban ni se suben. El análisis y el contador son estimaciones, no una evaluación profesional.',
     close:'Cerrar', add:'Añadir', edit:'Editar', delete:'Eliminar', todayDate:'Hoy',
     noWorkout:'Sin entrenamientos todavía', noWorkoutText:'Crea una plantilla y añade los movimientos que quieras practicar.',
     week:'Semana', month:'Mes', history:'Historial', allTime:'Total',
@@ -63,7 +65,7 @@ const I18N = {
     calendar:'Calendar', thisMonth:'This month', schedule:'Schedule', restDay:'Mark rest day',
     data:'Your data', export:'Export a copy', import:'Import a copy', clear:'Clear local data',
     local:'Private by design', localText:'Your workouts and preferences are saved on this device.',
-    camera:'Camera assistance', cameraPreview:'Local preview', cameraDisclaimer:'The camera only shows a local preview on this device. It is not recorded or sent to a server. Posture analysis and automatic rep counting are not integrated yet.',
+    camera:'Camera assistance', cameraPreview:'Local preview', cameraDisclaimer:'Video and body landmarks are analysed on this device; they are not recorded or uploaded. Analysis and rep counts are estimates, not a professional assessment.',
     close:'Close', add:'Add', edit:'Edit', delete:'Delete', todayDate:'Today',
     noWorkout:'No workouts yet', noWorkoutText:'Create a template and add the movements you want to practise.',
     week:'Week', month:'Month', history:'History', allTime:'All time',
@@ -94,6 +96,19 @@ let cameraStream = null;
 let onboardingStep = 0;
 let onboardingNotificationsRequested = false;
 let cameraVideo = null;
+let cameraPoseLandmarker = null;
+let cameraAnimationFrame = null;
+let cameraLastVideoTime = -1;
+let cameraLastInferenceAt = 0;
+let cameraLastTimestamp = 0;
+let cameraRepTracker = createRepCounter();
+let cameraPoseMetrics = null;
+let cameraExerciseId = 'squat';
+let cameraMetricsConsent = false;
+let cameraModelLoading = false;
+let cameraPoseError = '';
+let cameraAnalysisActive = false;
+let cameraGeneration = 0;
 let gestureController;
 let saving = Promise.resolve();
 let installPrompt = null;
@@ -185,9 +200,9 @@ function layout(content, title) {
     <nav class="mobile-nav" aria-label="Navegación inferior">${navItems.map(x => navButton(x,true)).join('')}</nav>
     ${modal ? renderModal() : ''}`;
   document.body.dataset.view = view;
-  if (modal?.type === 'camera' && cameraVideo && cameraStream) {
+  if (modal?.type === 'camera' && cameraStream) {
     const video = root.querySelector('#camera-video');
-    if (video) { video.srcObject = cameraStream; video.play().catch(()=>{}); cameraVideo = video; }
+    if (video) { if(video.srcObject!==cameraStream)video.srcObject=cameraStream; cameraVideo=video; video.play().catch(()=>{}); if(cameraAnalysisActive&&cameraPoseLandmarker)startPoseLoop(); }
   }
 }
 
@@ -443,7 +458,7 @@ function sessionPage() {
     <div class="session-panel"><div class="session-count">Movimiento ${s.currentIndex+1} / ${s.workout.exercises.length}</div><h2 class="session-exercise">${esc(exercise.name)}</h2><p class="session-desc">${esc(categoryName(exercise.category))} · ${esc(exercise.pattern||'Movimiento')}${item.weight?` · ${esc(item.weight)} kg`:''}</p><div class="session-visual" data-illustration><div class="exercise-glyph">${icon('activity')}</div></div>
       <div class="session-metrics"><div class="session-metric"><strong>${count}${targetSets?` / ${targetSets}`:''}</strong><small>${esc(t('sets'))}</small></div><div class="session-metric"><strong>${item.reps?esc(item.reps):item.duration?`${esc(item.duration)}s`:'—'}</strong><small>${item.reps?esc(t('repetitions')):item.duration?'Duración':esc(t('noGoal'))}</small></div><div class="session-metric"><strong id="session-clock">${formatDuration(elapsed)}</strong><small>Tiempo total</small></div></div>
       <div class="session-progress"><span style="width:${Math.min(100,progress)}%"></span></div><div class="session-controls" style="margin-top:20px"><button class="button secondary" data-action="session-previous" ${s.currentIndex===0?'disabled':''}>${icon('back')}${esc(t('previous'))}</button><button class="button primary" data-action="complete-set">${icon('check')}${esc(t('completeSet'))}</button><button class="button secondary" data-action="session-next">${esc(t('next'))}${icon('arrow')}</button></div>
-      <div class="session-controls" style="margin-top:10px"><button class="button ghost small" data-action="session-pause">${icon(s.paused?'play':'pause')}${esc(s.paused?t('resume'):t('pause'))}</button><button class="button ghost small" data-action="rest-from-exercise">${icon('timer')} Descansar ${esc(item.rest??60)}s</button><button class="button ghost small" data-action="undo" ${!s.history?.length?'disabled':''}>${icon('undo')}${esc(t('undo'))}</button><button class="button danger small" data-action="finish-session">${esc(t('finish'))}</button></div>
+      <div class="session-controls" style="margin-top:10px"><button class="button ghost small" data-action="session-pause">${icon(s.paused?'play':'pause')}${esc(s.paused?t('resume'):t('pause'))}</button><button class="button ghost small" data-action="rest-from-exercise">${icon('timer')} Descansar ${esc(item.rest??60)}s</button><button class="button ghost small" data-action="open-camera" data-id="${esc(exercise.id)}">${icon('camera')} Cámara y repeticiones</button><button class="button ghost small" data-action="undo" ${!s.history?.length?'disabled':''}>${icon('undo')}${esc(t('undo'))}</button><button class="button danger small" data-action="finish-session">${esc(t('finish'))}</button></div>
     </div>
     <div class="section-head"><div><h2>Indicaciones</h2><p>Consulta los puntos clave del movimiento</p></div><button class="button ghost small" data-action="exercise-detail" data-id="${esc(exercise.id)}">Ver ficha completa</button></div>
     <div class="surface pad"><strong style="font-size:13px">Posición inicial</strong><p class="small-text">${esc(exercise.start||'Consulta una posición cómoda y estable.')}</p><div class="divider"></div><strong style="font-size:13px">Respiración</strong><p class="small-text">${esc(exercise.breathing||'Respira de forma continua.')}</p><div class="divider"></div><strong style="font-size:13px">Siguiente</strong><p class="small-text">${esc(getExercise(s.workout.exercises[s.currentIndex+1]?.exerciseId)?.name||'Fin de la lista')}</p></div>
@@ -502,6 +517,30 @@ function navigateDelta(delta) {
 }
 function openModal(type,data={}) { modal={type,...data}; renderPage(); }
 function closeModal() { if(modal?.type==='camera') stopCamera(); modal=null; renderPage(); }
+function cameraModalBody() {
+  const config=POSE_EXERCISES[cameraExerciseId];
+  const exerciseOptions=Object.entries(POSE_EXERCISES).map(([id,item])=>'<option value="'+id+'" '+(id===cameraExerciseId?'selected':'')+'>'+esc(state.preferences.language==='en'?item.labelEn:item.label)+'</option>').join('');
+  const cameraView=config?(state.preferences.language==='en'?config.viewEn:config.view):'';
+  const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;
+  const canLog=Boolean(state.activeSession&&activeId===cameraExerciseId&&cameraRepTracker.count>0);
+  const status=cameraPoseError||(cameraModelLoading?'Descargando motor y modelo de postura…':cameraAnalysisActive?(cameraPoseMetrics?.feedback||'Preparando seguimiento…'):cameraStream?'Vista previa activa. Acepta las métricas para iniciar el análisis.':'La cámara permanece apagada hasta que la actives.');
+  const preview=cameraStream
+    ? '<div class="camera-frame" style="margin-top:14px"><video id="camera-video" autoplay playsinline muted></video><canvas id="pose-overlay" aria-hidden="true"></canvas><div class="camera-overlay"></div><span class="camera-badge">'+(cameraAnalysisActive?'Pose tracking · local':'Vista previa local · sin grabación')+'</span></div>'
+    : '<div class="camera-frame camera-placeholder" style="margin-top:14px"><div>'+icon('camera')+'</div><strong>Vista previa desactivada</strong><small>Activa la cámara cuando estés preparado.</small></div>';
+  const consent='<label class="camera-consent"><input id="camera-metrics-consent" type="checkbox" '+(cameraMetricsConsent?'checked':'')+'><span><strong>Consentimiento de métricas técnicas</strong><small>Acepto que MediaPipe pueda enviar métricas técnicas agregadas de uso y rendimiento a Google. El vídeo y los puntos corporales se procesan en este dispositivo y no se suben.</small></span></label>';
+  const start=cameraStream
+    ? (cameraAnalysisActive?'<button class="button secondary" data-action="camera-analysis-stop">Pausar análisis</button>':'<button class="button primary" data-action="camera-analysis-start" '+(cameraModelLoading?'disabled':'')+'>Iniciar análisis</button>')
+    : '<button class="button primary" data-action="camera-start">'+icon('camera')+esc(t('cameraStart'))+'</button>';
+  const stop=cameraStream?'<button class="button secondary" data-action="camera-stop">Apagar cámara</button>':'';
+  const log=canLog?'<button class="button primary" data-action="camera-log-set">Registrar serie · '+cameraRepTracker.count+' reps</button>':'';
+  return '<div class="notice warning">'+esc(t('cameraDisclaimer'))+'</div>'+preview+
+    '<div class="camera-tools"><div class="field"><label for="camera-exercise">Movimiento que quieres contar</label><select id="camera-exercise">'+exerciseOptions+'</select><small class="field-hint">'+esc(cameraView)+'</small></div>'+
+    '<div class="camera-stats"><div class="camera-stat"><small>REPETICIONES</small><strong id="camera-rep-count">'+cameraRepTracker.count+'</strong></div><div class="camera-stat"><small>ÁNGULO ESTIMADO</small><strong id="camera-angle">'+(cameraPoseMetrics?.angle??'—')+(cameraPoseMetrics?.angle===undefined?'':'°')+'</strong></div><div class="camera-stat"><small>SEGUIMIENTO</small><strong id="camera-phase">'+(cameraPoseMetrics?.visible?'Activo':'—')+'</strong></div></div>'+
+    '<p class="camera-status" id="camera-status" aria-live="polite">'+esc(status)+'</p>'+consent+
+    '<p class="camera-guidance">Deja el móvil estable, busca buena luz y mantén visibles las articulaciones necesarias. El contador es orientativo, no sustituye la supervisión profesional.</p>'+
+    '<div class="form-actions"><button class="button ghost" data-action="close-modal">'+esc(t('close'))+'</button>'+stop+start+log+'</div></div>';
+}
+
 function renderModal() {
   if (!modal) return '';
   let body=''; let title=''; let subtitle='';
@@ -531,11 +570,12 @@ function renderModal() {
   } else if (modal.type==='summary') {
     const s=modal.session; title='Sesión guardada'; subtitle=s.status==='completed'?'Has terminado esta sesión.':'La sesión se ha guardado como finalizada antes de tiempo.';
     const totalSets=Object.values(s.completed||{}).reduce((a,b)=>a+b,0);
+    const totalReps=(s.setLog||[]).reduce((sum,item)=>sum+(Number(item.reps)||0),0);
+    const repLines=(s.setLog||[]).filter(item=>Number(item.reps)>0).map(item=>{const ex=s.workout.exercises[item.index];return (getExercise(ex?.exerciseId)?.name||'Movimiento')+' · serie '+item.set+': '+item.reps+' reps';}).join(' / ');
     body=`<div class=\"grid three\"><div class=\"metric-card\"><div class=\"metric-label\">Tiempo</div><div class=\"metric-value\">${esc(formatDuration(s.durationMs||0))}</div></div><div class=\"metric-card\"><div class=\"metric-label\">Series registradas</div><div class=\"metric-value\">${totalSets}</div></div><div class=\"metric-card\"><div class=\"metric-label\">Movimientos</div><div class=\"metric-value\">${s.workout.exercises.length}</div></div></div><div class=\"notice\" style=\"margin-top:15px\">Los datos del resumen proceden de las acciones que has registrado durante la sesión.</div><div class=\"form-actions\"><button class=\"button primary\" data-action=\"summary-close\">Ver progreso</button></div>`;
+    body=body.replace('Los datos del resumen proceden de las acciones que has registrado durante la sesión.',totalReps?'Repeticiones estimadas registradas: '+totalReps+'. '+esc(repLines):'Los datos del resumen proceden de las acciones que has registrado durante la sesión.');
   } else if (modal.type==='camera') {
-    title=t('camera'); subtitle=t('cameraPreview');
-    body=`<div class="notice warning">${esc(t('cameraDisclaimer'))}</div><div class="camera-frame" style="margin-top:14px">${cameraStream?`<video id="camera-video" autoplay playsinline muted></video><div class="camera-overlay"></div><span class="camera-badge">Vista previa local · sin grabación</span>`:`<div style="text-align:center;padding:25px;color:#b9d5d9"><div style="margin-bottom:10px">${icon('camera')}</div>Vista previa desactivada</div>`}</div><p class="camera-status" id="camera-status">${cameraStream?'La vista previa se procesa en este dispositivo.':'La cámara no se activa hasta que pulses el botón.'}</p><div class="form-actions"><button class="button ghost" data-action="close-modal">${esc(t('close'))}</button><button class="button primary" data-action="${cameraStream?'camera-stop':'camera-start'}">${icon('camera')}${esc(cameraStream?t('cameraStop'):t('cameraStart'))}</button></div>`;
-  }
+    title=t('camera'); subtitle=t('cameraPreview'); body=cameraModalBody();
   return `<div class="modal-backdrop" data-action="backdrop-close"><section class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" data-no-gesture><div class="sheet-handle"></div><div class="sheet-head"><div><h2>${esc(title)}</h2><p>${esc(subtitle)}</p></div><button class="sheet-close" data-action="close-modal" aria-label="${esc(t('close'))}">${icon('close')}</button></div>${body}</section></div>`;
 }
 
@@ -647,15 +687,85 @@ function playTone() {
     osc.frequency.value=740;gain.gain.value=.035;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.16);osc.onended=()=>ctx.close();
   } catch { /* audio is optional */ }
 }
+function stopPoseAnalysis() {
+  cameraGeneration+=1;cameraAnalysisActive=false;cameraModelLoading=false;
+  if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
+  cameraAnimationFrame=null;
+  if(cameraPoseLandmarker){try{cameraPoseLandmarker.close();}catch(error){console.warn('No se pudo cerrar el modelo de postura',error);}}
+  cameraPoseLandmarker=null;cameraPoseMetrics=null;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;
+}
 function stopCamera() {
+  stopPoseAnalysis();
   if(cameraStream)cameraStream.getTracks().forEach(track=>track.stop());
-  cameraStream=null;cameraVideo=null;
+  cameraStream=null;cameraVideo=null;cameraMetricsConsent=false;
+}
+function updateCameraStatus(message) {const status=root.querySelector('#camera-status');if(status)status.textContent=message;}
+function drawPoseOverlay(landmarks) {
+  const canvas=root.querySelector('#pose-overlay'),video=cameraVideo;
+  if(!canvas||!video||!video.videoWidth||!video.videoHeight)return;
+  const rect=canvas.getBoundingClientRect(),ratio=Math.min(window.devicePixelRatio||1,2);
+  const width=Math.max(1,Math.round(rect.width*ratio)),height=Math.max(1,Math.round(rect.height*ratio));
+  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,rect.width,rect.height);
+  if(!landmarks?.length)return;
+  const scale=Math.max(rect.width/video.videoWidth,rect.height/video.videoHeight),offsetX=(rect.width-video.videoWidth*scale)/2,offsetY=(rect.height-video.videoHeight*scale)/2;
+  const point=index=>{const p=landmarks[index];return p?{x:offsetX+p.x*video.videoWidth*scale,y:offsetY+p.y*video.videoHeight*scale,score:Math.max(Number(p.visibility)||0,Number(p.presence)||0)}:null;};
+  ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='rgba(116,235,224,.9)';
+  for(const [a,b] of POSE_CONNECTIONS){const p=point(a),q=point(b);if(p&&q&&p.score>=.4&&q.score>=.4){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke();}}
+  ctx.fillStyle='#f5fffd';for(let i=11;i<33;i++){const p=point(i);if(p&&p.score>=.45){ctx.beginPath();ctx.arc(p.x,p.y,3.2,0,Math.PI*2);ctx.fill();}}
+}
+function updateCameraReadouts(metrics) {
+  const count=root.querySelector('#camera-rep-count');if(count)count.textContent=String(cameraRepTracker.count);
+  const angle=root.querySelector('#camera-angle');if(angle)angle.textContent=metrics?.angle===null||metrics?.angle===undefined?'—':metrics.angle+'°';
+  const phase=root.querySelector('#camera-phase');if(phase)phase.textContent=metrics?.visible?'Activo':'—';
+  if(metrics?.feedback)updateCameraStatus(metrics.feedback);
+  const logButton=root.querySelector('[data-action="camera-log-set"]');
+  const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;
+  if(logButton&&(!state.activeSession||activeId!==cameraExerciseId||cameraRepTracker.count<1))logButton.remove();
+  if(!logButton&&state.activeSession&&activeId===cameraExerciseId&&cameraRepTracker.count>0){
+    const actions=root.querySelector('.camera-tools .form-actions');
+    if(actions){const button=document.createElement('button');button.className='button primary';button.dataset.action='camera-log-set';button.textContent='Registrar serie · '+cameraRepTracker.count+' reps';actions.append(button);}
+  }else if(logButton)logButton.textContent='Registrar serie · '+cameraRepTracker.count+' reps';
+}
+function startPoseLoop() {
+  if(cameraAnimationFrame!==null||!cameraAnalysisActive||!cameraPoseLandmarker||!cameraVideo)return;
+  const tick=now=>{
+    if(!cameraAnalysisActive||!cameraPoseLandmarker||!cameraStream)return;
+    if(cameraVideo?.readyState>=2&&cameraVideo.currentTime!==cameraLastVideoTime&&now-cameraLastInferenceAt>=90){
+      cameraLastVideoTime=cameraVideo.currentTime;cameraLastInferenceAt=now;
+      try{
+        cameraLastTimestamp=Math.max(performance.now(),cameraLastTimestamp+1);
+        const result=cameraPoseLandmarker.detectForVideo(cameraVideo,cameraLastTimestamp),landmarks=result.landmarks?.[0]||null;
+        drawPoseOverlay(landmarks);cameraPoseMetrics=analyzePose(landmarks,cameraExerciseId,cameraRepTracker,Date.now());updateCameraReadouts(cameraPoseMetrics);
+      }catch(error){cameraPoseError=error.message||'Error durante el análisis de postura.';updateCameraStatus(cameraPoseError);}
+    }
+    cameraAnimationFrame=requestAnimationFrame(tick);
+  };
+  cameraAnimationFrame=requestAnimationFrame(tick);
+}
+async function startPoseAnalysis() {
+  if(!cameraStream){toast('Activa la cámara primero.','error');return;}
+  if(!cameraMetricsConsent){toast('Necesitas aceptar las métricas técnicas para iniciar MediaPipe.','error');return;}
+  if(cameraPoseLandmarker||cameraModelLoading)return;
+  const generation=++cameraGeneration;cameraModelLoading=true;cameraPoseError='';updateCameraStatus('Descargando el motor de postura y el modelo ligero…');
+  try{
+    const landmarker=await createPoseLandmarker();
+    if(generation!==cameraGeneration||!cameraStream||modal?.type!=='camera'){landmarker.close();return;}
+    cameraPoseLandmarker=landmarker;cameraAnalysisActive=true;cameraRepTracker=createRepCounter();cameraLastVideoTime=-1;cameraLastTimestamp=0;cameraModelLoading=false;
+    renderPage();startPoseLoop();
+  }catch(error){
+    cameraPoseError='No se pudo cargar el análisis: '+(error.message||error)+'. Comprueba la conexión y vuelve a intentarlo.';
+    cameraModelLoading=false;updateCameraStatus(cameraPoseError);
+    const button=root.querySelector('[data-action="camera-analysis-start"]');if(button)button.disabled=false;
+  }
 }
 async function startCamera() {
   if(!navigator.mediaDevices?.getUserMedia) { toast('Este navegador no permite acceder a la cámara.','error'); return; }
   try {
-    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:640},height:{ideal:480}},audio:false});
     renderPage();
+    if(cameraMetricsConsent)await startPoseAnalysis();
   } catch(error) {
     const status=root.querySelector('#camera-status');
     if(status)status.textContent=error.name==='NotAllowedError'?'Permiso denegado. Puedes habilitar la cámara desde los ajustes del navegador.':`No se pudo activar la cámara: ${error.message}`;
@@ -840,8 +950,11 @@ root.addEventListener('click', async event => {
     case 'export': downloadJSON();break;
     case 'import': root.querySelector('#import-file')?.click();break;
     case 'clear-data': if(confirm('Esto eliminará las plantillas, sesiones, preferencias y agenda guardadas en este navegador. Esta acción no se puede deshacer. ¿Continuar?')){await store.clear();state=defaultState();onboardingStep=0;view='onboarding';persist();renderPage();toast('Datos locales borrados.');}break;
-    case 'open-camera': openModal('camera');break;
-    case 'camera-start': await startCamera();break;
+    case 'open-camera': cameraExerciseId=POSE_EXERCISES[actionEl.dataset.id]?actionEl.dataset.id:(state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId||'squat');cameraRepTracker=createRepCounter();cameraMetricsConsent=false;cameraPoseError='';openModal('camera',{exerciseId:cameraExerciseId});break;
+    case 'camera-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startCamera();break;
+    case 'camera-analysis-start': cameraMetricsConsent=Boolean(root.querySelector('#camera-metrics-consent')?.checked);await startPoseAnalysis();break;
+    case 'camera-analysis-stop': stopPoseAnalysis();renderPage();break;
+    case 'camera-log-set': {const activeId=state.activeSession?.workout?.exercises?.[state.activeSession.currentIndex]?.exerciseId;const reps=cameraRepTracker.count;if(!state.activeSession||activeId!==cameraExerciseId||reps<1){toast('No hay una serie compatible para registrar.','error');break;}cameraRepTracker=createRepCounter();cameraPoseMetrics=null;updateSession(s=>completeSet(s,Date.now(),reps));toast('Serie registrada con '+reps+' repeticiones estimadas.');break;}
     case 'camera-stop': stopCamera();renderPage();break;
     case 'summary-close': modal=null;navigate('progress');break;
     case 'zoom': actionEl.classList.toggle('zoomed');break;
@@ -878,6 +991,8 @@ root.addEventListener('change', async event => {
     if(key==='animations')applyTheme();
     toast('Preferencia actualizada.');
   }
+  if(el.id==='camera-exercise') {cameraExerciseId=POSE_EXERCISES[el.value]?el.value:'squat';cameraRepTracker=createRepCounter();cameraPoseMetrics=null;renderPage();return;}
+  if(el.id==='camera-metrics-consent') {cameraMetricsConsent=el.checked;return;}
   if(el.id==='schedule-kind') {
     const box=root.querySelector('#schedule-workout-field');if(box)box.classList.toggle('hidden',el.value==='rest');
     const reminder=root.querySelector('#schedule-reminder-field');if(reminder)reminder.classList.toggle('hidden',el.value==='rest');
