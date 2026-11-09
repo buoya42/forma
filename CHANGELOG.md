@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0 — 2026-11-09
+- Clarified camera privacy and capability status: it only shows a local, unrecorded preview on this device; posture analysis and automatic rep counting are not integrated.
+- Added a color-theme selector with System, Dark, Light, OLED true black, Ocean, Forest, Sunset and Lavender palettes, available during onboarding and in Settings.
+- Kept color palettes independent from the Liquid Glass / Material 3 interface-style selector.
+- Persisted and validated the expanded theme choices in local backups and refreshed the offline app cache.
+
+
 ## 1.4.1 — 2026-11-09
 - Improved Apple/iPadOS detection, including iPad Safari's desktop-style user agent, and made platform selection a tested module.
 - Added the automatic/manual interface-style selector to first-run setup as well as Settings; users can switch between Liquid Glass and Material 3 Expressive at any time.
