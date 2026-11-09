@@ -44,3 +44,20 @@ test('backup import preserves a manual interface style and safely defaults unkno
   assert.equal(material.preferences.interfaceStyle,'material-expressive');
   assert.equal(invalid.preferences.interfaceStyle,'auto');
 });
+
+
+test('backup import preserves circuit rounds and set-level repetition sources',()=>{
+  const data={version:1,favorites:[],hiddenExercises:[],customExercises:[],schedule:[],workouts:[
+    {id:'circuit-1',name:'Circuit',structure:'circuit',rounds:4,exercises:[{exerciseId:'squat',sets:2}]}
+  ],sessions:[
+    {id:'s1',workout:{id:'circuit-1',name:'Circuit',structure:'circuit',rounds:4,exercises:[{exerciseId:'squat',sets:2}]},setLog:[
+      {index:0,set:1,reps:12,source:'camera',at:'2026-11-09T12:00:00.000Z'},
+      {index:0,set:2,reps:10,source:'manual',at:'2026-11-09T12:01:00.000Z'}
+    ]}
+  ]};
+  const safe=validateImport(data);
+  assert.equal(safe.workouts[0].rounds,4);
+  assert.equal(safe.sessions[0].setLog[0].source,'camera');
+  assert.equal(safe.sessions[0].setLog[1].source,'manual');
+  assert.equal(safe.sessions[0].setLog[0].reps,12);
+});

@@ -9,8 +9,8 @@ FORMA is a local-first fitness web application designed for phones, tablets and 
 - Responsive navigation and swipe gestures with visible button alternatives.
 - Exercise library with search, category/equipment/difficulty filters, favorites, custom exercises, edit, hide and restore.
 - Curated workout presets, including **Método Fluffo** in honour of the person behind the original idea, plus bodyweight, dumbbell, lower-body, core and mobility templates. Presets open in the editor and are only saved when the user chooses.
-- Workout templates with reordering, repetitions/time targets, configurable rest, optional load, notes and warm-up/cool-down reminders.
-- Active sessions with pause/resume, elapsed-time recovery, explicit set completion, undo, previous/next movement and session summaries.
+- Workout templates with reordering, repetitions/time targets, configurable rest, optional load, notes, circuit rounds and guided warm-up/cool-down phases.
+- Active sessions with pause/resume, elapsed-time recovery, explicit set completion, optional actual-rep logging, undo, previous/next movement, circuit auto-advance and session summaries. Completed sets can feed per-exercise best-rep/load records.
 - Rest/custom countdown timer, with optional sound and vibration where supported.
 - Progress and session history derived from locally completed sessions only.
 - Monthly calendar for planned sessions, rest days, rescheduling and completed-session history.
@@ -19,6 +19,12 @@ FORMA is a local-first fitness web application designed for phones, tablets and 
 - IndexedDB persistence with a localStorage fallback, JSON export/import and local-data deletion.
 - PWA manifest, app icons and versioned service-worker asset caching.
 - Optional camera-based pose tracking with MediaPipe Pose Landmarker Lite: a live 33-point skeleton overlay and estimated rep counting for squats, lunges, push-ups, wall push-ups, dumbbell bench press, curls, rows, shoulder press, lateral raises and triceps extensions. Analysis starts only after camera permission and separate technical-metrics consent; video and body landmarks are processed on-device and are not recorded or uploaded. Estimated reps are added to a set only when the user confirms.
+
+## Circuit, warm-up and training records
+
+Circuit templates can be configured for 1–20 rounds. During a live circuit, FORMA advances automatically after the configured sets for each movement and starts the next round after the final exercise. A manual undo returns to the movement and round where the set was recorded. Optional warm-up and cool-down choices now open guided phases before/after the workout; both can be skipped.
+
+Actual repetitions can be entered optionally when completing a set or recorded from the camera counter. The progress summary displays total logged reps, estimated camera reps, load × reps for sets with an entered load, and the best logged reps/load by movement. These records are based on the stored set log; older sessions without per-set rep data are not retroactively estimated.
 
 ## Camera pose assistance
 

@@ -1,5 +1,13 @@
 # FORMA development status
 
+## Delivered in v1.7.0
+
+- Added circuit templates with 1–20 rounds, automatic exercise/round advancement after configured sets and cursor-aware undo.
+- Converted warm-up and cool-down checkboxes from passive reminders into guided, skippable session phases.
+- Added optional actual reps per set, with source attribution for manual entries versus camera estimates.
+- Added progress metrics for recorded reps, load × reps and per-exercise best reps/load based on real set logs.
+- Extended backup validation for circuit rounds and set-level rep sources; added circuit flow and backup round-trip tests.
+
 ## Delivered in v1.6.0
 
 - Integrated MediaPipe Pose Landmarker Lite for on-device video pose estimation, a live skeleton overlay and joint-angle readouts.
@@ -40,8 +48,7 @@
 
 - Camera rep thresholds are heuristic estimates and have not yet been validated across a representative range of physical devices, camera angles, body types and movement speeds. Camera guidance is not a full form or safety assessment.
 - Reliable scheduled notifications while FORMA is fully closed (would require a push service/backend).
-- Full circuit-round engine and automatic warm-up/cool-down stages.
-- Detailed per-set repetition records, volume charts and personal-record detection.
+- Full exercise-by-exercise English translation and richer long-term training analytics remain incomplete.
 - Full English translation of all exercise and safety content.
 - Physical-device QA on Android Chrome, iOS Safari and Firefox.
 

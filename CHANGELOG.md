@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 — 2026-11-09
+- Added circuit templates with 1–20 rounds, automatic movement/round advancement after the configured sets and undo that restores the correct circuit cursor.
+- Added skippable guided warm-up and cool-down stages when selected in the workout template.
+- Added optional actual-rep entry per set, source attribution for manual versus camera-estimated counts, and progress metrics for logged reps, load × reps and best reps/load per exercise.
+- Preserved circuit rounds and set-level repetition sources in imported backups; added circuit and backup tests.
+
 ## 1.6.0 — 2026-11-09
 - Added on-device pose estimation with MediaPipe Pose Landmarker Lite, a live skeleton overlay and movement-specific rep estimates for 11 supported exercises.
 - Added camera access from compatible live workouts, set-level estimated-rep logging, session summary details and undo support.

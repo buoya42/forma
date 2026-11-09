@@ -56,9 +56,9 @@ test('pose counter ignores low-visibility landmarks and unsupported exercises',(
 test('set logging stores camera-estimated repetitions and undo removes the same set detail',()=>{
   const workout={id:'w1',name:'Camera test',exercises:[{exerciseId:'squat'}]};
   let session=startSession(workout,1000);
-  session=completeSet(session,2000,12);
+  session=completeSet(session,2000,12,'camera');
   assert.equal(session.completed[0],1);
-  assert.deepEqual(session.setLog,[{index:0,set:1,reps:12,at:2000}]);
+  assert.deepEqual(session.setLog,[{index:0,set:1,reps:12,source:'camera',at:2000}]);
   session=undoLastAction(session);
   assert.equal(session.completed[0],undefined);
   assert.equal(session.setLog.length,0);
