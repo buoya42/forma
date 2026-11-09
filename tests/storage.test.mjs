@@ -33,3 +33,14 @@ test('validateImport preserves opted-in reminders and delivery markers', () => {
   assert.equal(safe.schedule[0].time,'18:30');
   assert.equal(safe.schedule[0].notifiedAt,'');
 });
+
+
+test('backup import preserves a manual interface style and safely defaults unknown styles', () => {
+  const base={version:1,favorites:[],hiddenExercises:[],customExercises:[],workouts:[],sessions:[],schedule:[]};
+  const liquid=validateImport({...base,preferences:{interfaceStyle:'liquid-glass'}});
+  const material=validateImport({...base,preferences:{interfaceStyle:'material-expressive'}});
+  const invalid=validateImport({...base,preferences:{interfaceStyle:'not-a-theme'}});
+  assert.equal(liquid.preferences.interfaceStyle,'liquid-glass');
+  assert.equal(material.preferences.interfaceStyle,'material-expressive');
+  assert.equal(invalid.preferences.interfaceStyle,'auto');
+});
