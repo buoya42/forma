@@ -723,6 +723,7 @@ function playTone() {
   } catch { /* audio is optional */ }
 }
 function pausePoseAnalysis() {
+  cameraGeneration+=1;
   cameraAnalysisActive=false;
   if(cameraAnimationFrame!==null)cancelAnimationFrame(cameraAnimationFrame);
   cameraAnimationFrame=null;
