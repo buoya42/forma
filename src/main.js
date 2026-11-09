@@ -465,7 +465,7 @@ function applyTheme() {
   document.documentElement.dataset.theme=resolved;
   const platformStyle=state.preferences.interfaceStyle||'auto';
   const ua=navigator.userAgent||'';
-  const appleDevice=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1);
+  const appleDevice=/iPhone|iPad|iPod|Macintosh/i.test(ua);
   const androidDevice=/Android/i.test(ua);
   document.documentElement.dataset.interface=platformStyle==='auto'?(appleDevice?'liquid-glass':'material-expressive'):platformStyle;
   document.documentElement.dataset.motion=state.preferences.animations===false?'off':'on';
