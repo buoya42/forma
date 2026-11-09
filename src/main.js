@@ -6,7 +6,6 @@ import { getDueReminders, getExpiredReminders, getUpcomingReminders, REMINDER_RE
 import { migrateLegacyFluffoNames } from './migrations.js';
 import { detectPlatform, resolveInterfaceStyle } from './platform.js';
 import { POSE_EXERCISES, POSE_CONNECTIONS, createRepCounter, analyzePose } from './pose.js';
-import { createPoseLandmarker } from './pose-runtime.js';
 
 const store = new LocalStore();
 const root = document.querySelector('#app');
@@ -192,7 +191,7 @@ function layout(content, title) {
       <aside class="sidebar" aria-label="Navegación principal">
         <div class="brand"><div class="brand-mark"><img src="./public/icons/dumbbell-mark.svg" alt="" /></div><div><div class="brand-name">FORMA</div><div class="brand-caption">Move with intent</div></div></div>
         <div class="nav-label">Workspace</div><nav class="nav-list">${navItems.map(x => navButton(x)).join('')}</nav>
-        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.7.0</div></div>
+        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.7.1</div></div>
       </aside>
       <main class="main-area">
         <header class="topbar"><div class="topbar-left"><div><div class="eyebrow">${esc(todayLocale())}</div><h1 class="page-title">${esc(title || t(view))}</h1></div></div><div class="top-actions">${installPrompt?`<button class="button secondary small" data-action="install-app">Instalar</button>`:''}<button class="icon-button" data-action="open-timer" aria-label="${esc(t('timer'))}" title="${esc(t('timer'))}">${icon('timer')}</button>${state.activeSession ? `<button class="button primary small" data-action="return-session">${icon('play')}${esc(t('resumeSession'))}</button>`:''}<div class="avatar" aria-label="Perfil">${profileName ? esc(profileName.slice(0,1).toUpperCase()) : 'F'}</div></div></header>
@@ -777,7 +776,7 @@ function handlePoseWorkerMessage(worker,data) {
   if(data.type==='error'){
     cameraPoseFramePending=false;
     cameraPoseError=data.message||'Error durante el análisis de postura.';
-    if(data.stage==='init'){cameraModelLoading=false;cameraAnalysisActive=false;cameraPoseWorkerReady=false;worker.terminate();cameraPoseWorker=null;}
+    if(data.stage==='init'){cameraModelLoading=false;cameraAnalysisActive=false;cameraPoseWorkerReady=false;worker.terminate();cameraPoseWorker=null;const retry=root.querySelector('[data-action="camera-analysis-start"]');if(retry)retry.disabled=false;}
     updateCameraStatus(cameraPoseError);return;
   }
   if(data.type==='pose'){
@@ -822,7 +821,7 @@ async function startPoseAnalysis() {
       if(worker!==cameraPoseWorker)return;
       cameraPoseFramePending=false;cameraModelLoading=false;cameraAnalysisActive=false;cameraPoseWorkerReady=false;
       cameraPoseError=event.message||'El worker de postura no ha podido iniciarse.';
-      updateCameraStatus(cameraPoseError);worker.terminate();cameraPoseWorker=null;
+      updateCameraStatus(cameraPoseError);const retry=root.querySelector('[data-action="camera-analysis-start"]');if(retry)retry.disabled=false;worker.terminate();cameraPoseWorker=null;
     };
     worker.postMessage({type:'init',generation});
   }catch(error){

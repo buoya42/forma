@@ -64,3 +64,14 @@ test('set logging stores camera-estimated repetitions and undo removes the same 
   assert.equal(session.completed[0],undefined);
   assert.equal(session.setLog.length,0);
 });
+
+test('camera pose inference is delegated to a module worker instead of blocking the app render loop', async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const {resolve}=await import('node:path');
+  const main=await readFile(resolve(new URL('..',import.meta.url).pathname,'src/main.js'),'utf8');
+  const worker=await readFile(resolve(new URL('..',import.meta.url).pathname,'src/pose-worker.js'),'utf8');
+  assert.match(main,/new Worker\(new URL\('\.\/pose-worker\.js',import\.meta\.url\)/);
+  assert.match(main,/createImageBitmap\(cameraVideo\)/);
+  assert.match(worker,/detectForVideo\(bitmap/);
+  assert.match(worker,/worldLandmarks/);
+});
