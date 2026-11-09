@@ -4,6 +4,7 @@ import { makeId, startSession, pauseSession, resumeSession, moveExercise, comple
 import { GestureController } from './gestures.js';
 import { getDueReminders, getExpiredReminders, getUpcomingReminders, REMINDER_RECHECK_MS } from './reminders.js';
 import { migrateLegacyFluffoNames } from './migrations.js';
+import { detectPlatform, resolveInterfaceStyle } from './platform.js';
 
 const store = new LocalStore();
 const root = document.querySelector('#app');
@@ -174,7 +175,7 @@ function layout(content, title) {
       <aside class="sidebar" aria-label="Navegación principal">
         <div class="brand"><div class="brand-mark"><img src="./public/icons/dumbbell-mark.svg" alt="" /></div><div><div class="brand-name">FORMA</div><div class="brand-caption">Move with intent</div></div></div>
         <div class="nav-label">Workspace</div><nav class="nav-list">${navItems.map(x => navButton(x)).join('')}</nav>
-        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.3.1</div></div>
+        <div class="sidebar-bottom"><div class="privacy-chip"><span class="privacy-dot"></span><div><strong>${esc(t('local'))}</strong>${esc(t('localText'))}</div></div><div class="small-text" style="padding:0 10px">FORMA · v1.4.1</div></div>
       </aside>
       <main class="main-area">
         <header class="topbar"><div class="topbar-left"><div><div class="eyebrow">${esc(todayLocale())}</div><h1 class="page-title">${esc(title || t(view))}</h1></div></div><div class="top-actions">${installPrompt?`<button class="button secondary small" data-action="install-app">Instalar</button>`:''}<button class="icon-button" data-action="open-timer" aria-label="${esc(t('timer'))}" title="${esc(t('timer'))}">${icon('timer')}</button>${state.activeSession ? `<button class="button primary small" data-action="return-session">${icon('play')}${esc(t('resumeSession'))}</button>`:''}<div class="avatar" aria-label="Perfil">${profileName ? esc(profileName.slice(0,1).toUpperCase()) : 'F'}</div></div></header>
@@ -310,9 +311,12 @@ function settingsPage() {
   const p=state.preferences, profile=state.profile;
   const themeOptions=[['system',t('system')],['dark',t('dark')],['light',t('light')]];
   const interfaceOptions=[['auto',state.preferences.language==='en'?'Automatic (recommended)':'Automático (recomendado)'],['liquid-glass','Liquid Glass'],['material-expressive','Material 3 Expressive']];
+  const recommendedInterface=resolveInterfaceStyle('auto',detectCurrentPlatform());
+  const recommendedInterfaceName=recommendedInterface==='liquid-glass'?'Liquid Glass':'Material 3 Expressive';
+  const interfaceHint=state.preferences.language==='en'?`Automatic recommends ${recommendedInterfaceName} on this device. You can switch styles at any time.`:`Automático recomienda ${recommendedInterfaceName} en este dispositivo. Puedes cambiar de estilo cuando quieras.`;
   return `<form data-form="settings" class="stack">
     <section class="surface pad"><div class="section-head" style="margin:0 0 15px"><div><h2>Perfil de entrenamiento</h2><p>Opcional; ayuda a adaptar la experiencia</p></div></div><div class="form-grid"><div class="field"><label for="profile-name">Nombre (opcional)</label><input id="profile-name" name="name" maxlength="40" value="${esc(profile.name)}" placeholder="¿Cómo te llamamos?" /></div><div class="field"><label for="profile-level">${esc(t('level'))}</label><select id="profile-level" name="level"><option value="beginner" ${profile.level==='beginner'?'selected':''}>${esc(t('beginner'))}</option><option value="intermediate" ${profile.level==='intermediate'?'selected':''}>${esc(t('intermediate'))}</option><option value="advanced" ${profile.level==='advanced'?'selected':''}>${esc(t('advanced'))}</option></select></div><div class="field"><label for="profile-duration">${esc(t('duration'))} (${esc(t('min'))})</label><input id="profile-duration" name="duration" type="number" min="5" max="180" value="${profile.duration}" /></div><div class="field"><label for="profile-units">${esc(t('units'))}</label><select id="profile-units" name="units"><option value="metric" ${profile.units==='metric'?'selected':''}>${esc(t('metric'))}</option><option value="imperial" ${profile.units==='imperial'?'selected':''}>${esc(t('imperial'))}</option></select></div></div><div class="field" style="margin-top:14px"><span class="field-label">${esc(t('equipment'))}</span><div class="toolbar">${EQUIPMENT.map(([id,label])=>`<label class="check-row"><input type="checkbox" name="equipment" value="${id}" ${profile.equipment.includes(id)?'checked':''}/> ${esc(label)}</label>`).join('')}</div></div><div class="form-actions"><button class="button primary" type="submit">${esc(t('save'))}</button><button class="button ghost small" type="button" data-action="open-onboarding">${state.preferences.language==='en'?'Run setup again':'Volver a configurar FORMA'}</button></div></section>
-    <section class="surface pad"><div class="section-head" style="margin:0 0 10px"><div><h2>${esc(t('appearance'))}</h2><p>Personaliza la interfaz</p></div></div><div class="form-grid"><div class="field"><label for="pref-theme">${esc(t('theme'))}</label><select id="pref-theme" name="theme">${themeOptions.map(([v,l])=>`<option value="${v}" ${p.theme===v?'selected':''}>${esc(l)}</option>`).join('')}</select></div><div class="field"><label for="pref-language">${esc(t('language'))}</label><select id="pref-language" name="language"><option value="es" ${p.language==='es'?'selected':''}>Español</option><option value="en" ${p.language==='en'?'selected':''}>English</option></select></div></div><div class="field" style="margin-top:14px"><label for="pref-interface">${state.preferences.language==='en'?'Interface style':'Estilo de interfaz'}</label><select id="pref-interface" name="interfaceStyle">${interfaceOptions.map(([v,l])=>`<option value="${v}" ${((p.interfaceStyle||'auto')===v)?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="field-hint">${state.preferences.language==='en'?'Auto selects Liquid Glass on Apple devices and Material 3 Expressive on Android. You can always switch manually.':'Automático usa Liquid Glass en dispositivos Apple y Material 3 Expressive en Android. Puedes cambiarlo cuando quieras.'}</small></div><div class="form-actions"><button class="button secondary" type="submit">Aplicar cambios</button></div></section>
+    <section class="surface pad"><div class="section-head" style="margin:0 0 10px"><div><h2>${esc(t('appearance'))}</h2><p>Personaliza la interfaz</p></div></div><div class="form-grid"><div class="field"><label for="pref-theme">${esc(t('theme'))}</label><select id="pref-theme" name="theme">${themeOptions.map(([v,l])=>`<option value="${v}" ${p.theme===v?'selected':''}>${esc(l)}</option>`).join('')}</select></div><div class="field"><label for="pref-language">${esc(t('language'))}</label><select id="pref-language" name="language"><option value="es" ${p.language==='es'?'selected':''}>Español</option><option value="en" ${p.language==='en'?'selected':''}>English</option></select></div></div><div class="field" style="margin-top:14px"><label for="pref-interface">${state.preferences.language==='en'?'Interface style':'Estilo de interfaz'}</label><select id="pref-interface" name="interfaceStyle">${interfaceOptions.map(([v,l])=>`<option value="${v}" ${((p.interfaceStyle||'auto')===v)?'selected':''}>${esc(l)}</option>`).join('')}</select><small class="field-hint">${esc(interfaceHint)}</small></div><div class="form-actions"><button class="button secondary" type="submit">Aplicar cambios</button></div></section>
     <section class="surface pad"><div class="section-head" style="margin:0 0 7px"><div><h2>Interacción y accesibilidad</h2><p>Los gestos siempre tienen controles visibles equivalentes</p></div></div>
       ${toggle('gestures',t('gestures'),t('explainGestures'),p.gestures)}${toggle('workoutGestures',t('workoutGestures'),'Deslizar para cambiar de ejercicio y abrir instrucciones.',p.workoutGestures)}${toggle('doubleTap','Ampliar con doble toque','Doble toque sobre la ilustración del ejercicio.',p.doubleTap)}${toggle('animations','Animaciones de interfaz','Transiciones suaves entre pantallas y microinteracciones. Respeta Reducir movimiento del sistema.',p.animations!==false)}
       <div class="field" style="margin-top:13px"><label for="gesture-sensitivity">${esc(t('sensitivity'))}</label><select id="gesture-sensitivity" name="sensitivity"><option value="low" ${p.sensitivity==='low'?'selected':''}>Baja (requiere más recorrido)</option><option value="normal" ${p.sensitivity==='normal'?'selected':''}>Normal</option><option value="high" ${p.sensitivity==='high'?'selected':''}>Alta (requiere menos recorrido)</option></select></div>
@@ -391,13 +395,14 @@ function onboardingPage() {
         '<fieldset class="onboarding-equipment"><legend>' + esc(tr('Material disponible','Available equipment')) + '</legend><div class="onboarding-choice-grid">' + equipmentOptions + '</div></fieldset>' +
         '<div class="onboarding-fields onboarding-preferences">' +
           '<div class="field"><label for="onboarding-theme">' + esc(tr('Apariencia','Appearance')) + '</label><select id="onboarding-theme" name="theme"><option value="system"' + (preferences.theme === 'system' ? ' selected' : '') + '>' + esc(tr('Seguir el sistema','Follow system')) + '</option><option value="dark"' + (preferences.theme === 'dark' ? ' selected' : '') + '>' + esc(tr('Oscuro','Dark')) + '</option><option value="light"' + (preferences.theme === 'light' ? ' selected' : '') + '>' + esc(tr('Claro','Light')) + '</option></select></div>' +
+          '<div class="field"><label for="onboarding-interface">' + esc(tr('Estilo de interfaz','Interface style')) + '</label><select id="onboarding-interface" name="interfaceStyle"><option value="auto"' + ((preferences.interfaceStyle || 'auto') === 'auto' ? ' selected' : '') + '>' + esc(tr('Automático · recomendado','Automatic · recommended')) + '</option><option value="liquid-glass"' + (preferences.interfaceStyle === 'liquid-glass' ? ' selected' : '') + '>Liquid Glass</option><option value="material-expressive"' + (preferences.interfaceStyle === 'material-expressive' ? ' selected' : '') + '>Material 3 Expressive</option></select><small class="field-hint">' + esc(tr('Automático adapta la apariencia a tu dispositivo. Puedes elegir cualquiera de los dos estilos.','Automatic adapts the look to your device. You can choose either style.')) + '</small></div>' +
           '<div class="field"><label>' + esc(tr('Comodidad y avisos','Comfort and reminders')) + '</label><label class="onboarding-toggle"><input type="checkbox" name="animations"' + (preferences.animations !== false ? ' checked' : '') + '><span class="onboarding-toggle-copy"><strong>' + esc(tr('Animaciones suaves','Smooth animations')) + '</strong><small>' + esc(tr('Se desactivan automáticamente si tu sistema prefiere menos movimiento.','Automatically reduced when your system prefers less motion.')) + '</small></span></label>' +
           '<label class="onboarding-toggle"><input type="checkbox" name="notifications"' + (preferences.notifications ? ' checked' : '') + '><span class="onboarding-toggle-copy"><strong>' + esc(tr('Recordatorios de entrenamiento','Workout reminders')) + '</strong><small>' + esc(tr('FORMA pedirá permiso al terminar. Puedes cambiarlo más tarde.','FORMA will ask for permission when you finish. You can change this later.')) + '</small></span></label></div>' +
         '</div>' +
         '<div class="notice onboarding-privacy"><strong>' + esc(tr('Siempre bajo tu control.','Always in your control.')) + '</strong> ' + esc(tr('La cámara solo se activa desde su función específica. Los datos de perfil y entrenamiento permanecen en este dispositivo.','The camera only turns on from its dedicated feature. Profile and workout data stay on this device.')) + '</div>' +
         '<div class="onboarding-actions onboarding-actions-split"><button type="button" class="button ghost" data-action="onboarding-back">' + icon('back') + ' ' + esc(tr('Atrás','Back')) + '</button><button type="submit" class="button primary">' + esc(tr('Guardar y entrar','Save and enter')) + ' ' + icon('check') + '</button></div>' +
       '</section>' +
-      '<div class="onboarding-bottom"><span>' + icon('shield') + ' ' + esc(tr('Sin cuenta · Sin nube · Sin prisa','No account · No cloud · No rush')) + '</span><span>FORMA · 1.3.1</span></div>' +
+      '<div class="onboarding-bottom"><span>' + icon('shield') + ' ' + esc(tr('Sin cuenta · Sin nube · Sin prisa','No account · No cloud · No rush')) + '</span><span>FORMA · 1.4.1</span></div>' +
     '</form>' +
   '</main>';
 }
@@ -419,6 +424,7 @@ function syncOnboardingFormToState() {
     ...state.preferences,
     language:fd.get('language') === 'en' ? 'en' : 'es',
     theme:['dark','light','system'].includes(String(fd.get('theme'))) ? String(fd.get('theme')) : state.preferences.theme,
+    interfaceStyle:['auto','liquid-glass','material-expressive'].includes(String(fd.get('interfaceStyle'))) ? String(fd.get('interfaceStyle')) : (state.preferences.interfaceStyle || 'auto'),
     animations:fd.get('animations') === 'on'
   };
   onboardingNotificationsRequested = fd.get('notifications') === 'on';
@@ -459,15 +465,21 @@ function renderPage() {
   applyTheme();
   updateSessionTicker();
 }
+function detectCurrentPlatform() {
+  return detectPlatform({
+    userAgent:navigator.userAgent || '',
+    platform:navigator.platform || '',
+    maxTouchPoints:navigator.maxTouchPoints || 0,
+    userAgentDataPlatform:navigator.userAgentData?.platform || ''
+  });
+}
 function applyTheme() {
   const theme=state.preferences.theme;
   const resolved=theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):theme;
   document.documentElement.dataset.theme=resolved;
-  const platformStyle=state.preferences.interfaceStyle||'auto';
-  const ua=navigator.userAgent||'';
-  const appleDevice=/iPhone|iPad|iPod|Macintosh/i.test(ua);
-  const androidDevice=/Android/i.test(ua);
-  document.documentElement.dataset.interface=platformStyle==='auto'?(appleDevice?'liquid-glass':'material-expressive'):platformStyle;
+  const platform=detectCurrentPlatform();
+  document.documentElement.dataset.platform=platform;
+  document.documentElement.dataset.interface=resolveInterfaceStyle(state.preferences.interfaceStyle || 'auto',platform);
   document.documentElement.dataset.motion=state.preferences.animations===false?'off':'on';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content',resolved==='light'?'#f2f8f9':'#101b22');
   document.documentElement.lang=state.preferences.language==='en'?'en':'es';
