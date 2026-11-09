@@ -773,7 +773,7 @@ root.addEventListener('click', async event => {
     case 'onboarding-next': syncOnboardingFormToState(); onboardingStep=Math.min(2,onboardingStep+1); renderPage(); window.scrollTo({top:0,behavior:'auto'}); break;
     case 'onboarding-back': syncOnboardingFormToState(); onboardingStep=Math.max(0,onboardingStep-1); renderPage(); window.scrollTo({top:0,behavior:'auto'}); break;
     case 'onboarding-skip': syncOnboardingFormToState(); state.onboardingComplete=true; onboardingStep=0; await persist(); view='home'; state.lastViewed='home'; pendingPageAnimation=state.preferences.animations!==false?'enter-forward':''; renderPage(); toast('Puedes ajustar la configuración cuando quieras.'); break;
-    case 'open-onboarding': onboardingStep=0; onboardingNotificationsRequested=state.preferences.notifications; view='onboarding'; modal=null; renderPage(); break;
+    case 'open-onboarding': onboardingStep=0; state.onboardingComplete=false; onboardingNotificationsRequested=state.preferences.notifications; await persist(); view='onboarding'; modal=null; renderPage(); break;
     case 'new-workout': openBuilder(); break;
     case 'use-preset': useWorkoutPreset(actionEl.dataset.id); break;
     case 'edit-workout': openBuilder(actionEl.dataset.id);break;
@@ -922,12 +922,13 @@ window.addEventListener('appinstalled',()=>{installPrompt=null;toast('FORMA inst
 async function init() {
   const savedState=await store.load(null);
   const firstRun=!savedState;
+  const hasOnboardingFlag=Boolean(savedState) && typeof savedState.onboardingComplete === 'boolean';
   state=savedState || defaultState();
   // Keep imported or older state bounded and compatible. Existing installations skip onboarding once.
   const defaults=defaultState();
   state={...defaults,...state,profile:{...defaults.profile,...state.profile},preferences:{...defaults.preferences,...state.preferences},timer:{...defaults.timer,...state.timer}};
   if(firstRun) state.onboardingComplete=false;
-  else if(typeof state.onboardingComplete!=='boolean') state.onboardingComplete=true;
+  else if(!hasOnboardingFlag) state.onboardingComplete=true;
   if(migrateLegacyFluffoNames(state))await store.save(state);
   if(state.activeSession) { state.activeSession.elapsedMs=elapsedMilliseconds(state.activeSession); state.activeSession.runningSince=null; state.activeSession.paused=true; } // Resume is always explicit after reload.
   view=state.onboardingComplete?'home':'onboarding';
