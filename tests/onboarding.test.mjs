@@ -41,3 +41,14 @@ test('existing saved installs skip onboarding and first-run motion respects redu
   assert.match(css,/prefers-reduced-motion:reduce/);
   assert.match(css,/data-motion="off"/);
 });
+
+
+test('onboarding lets users keep automatic style or explicitly choose either design family', async () => {
+  const main=await readFile(resolve(root,'src/main.js'),'utf8');
+  assert.match(main,/name="interfaceStyle"/);
+  assert.match(main,/value="liquid-glass"/);
+  assert.match(main,/value="material-expressive"/);
+  assert.match(main,/Automatic · recommended/);
+  assert.match(main,/Automático · recomendado/);
+  assert.match(main,/interfaceStyle:\['auto','liquid-glass','material-expressive'\]/);
+});
