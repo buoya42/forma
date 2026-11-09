@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 — 2026-11-09
+- Added platform-aware interface styling: Liquid Glass is the automatic default on Apple touch devices; Material 3 Expressive is the automatic default on Android and other platforms.
+- Added a persistent manual interface-style selector so every user can switch between Liquid Glass and Material 3 Expressive at any time, independently of light/dark mode.
+- Implemented web-native CSS adaptations inspired by Apple Human Interface Guidelines and Android Open Source Project guidance, with reduced-transparency and blur fallbacks.
+
+
 ## 1.3.1 — 2026-11-09
 - Refined the welcome screen into a signature FORMA opening: editorial two-column hero, animated brand mark, atmospheric grid and glow, orbit rings, floating identity cards, staggered text reveal and subtle CTA light sweep.
 - Improved mobile composition while retaining reduced-motion and animation-off support.
