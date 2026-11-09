@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 — 2026-11-09
+- Added on-device pose estimation with MediaPipe Pose Landmarker Lite, a live skeleton overlay and movement-specific rep estimates for 11 supported exercises.
+- Added camera access from compatible live workouts, set-level estimated-rep logging, session summary details and undo support.
+- Added explicit consent for MediaPipe aggregate technical usage/performance metrics; camera video and body landmarks remain on-device and are not uploaded or recorded.
+- Cached the pinned MediaPipe SDK/WASM assets and Lite model through the service worker after successful download, enabling subsequent offline analysis when cached assets remain available.
+- Added pose-angle, visibility, repetition-cycle and set-log unit tests.
+
 ## 1.5.0 — 2026-11-09
 - Clarified camera privacy and capability status: it only shows a local, unrecorded preview on this device; posture analysis and automatic rep counting are not integrated.
 - Added a color-theme selector with System, Dark, Light, OLED true black, Ocean, Forest, Sunset and Lavender palettes, available during onboarding and in Settings.

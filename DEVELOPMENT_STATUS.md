@@ -1,5 +1,13 @@
 # FORMA development status
 
+## Delivered in v1.6.0
+
+- Integrated MediaPipe Pose Landmarker Lite for on-device video pose estimation, a live skeleton overlay and joint-angle readouts.
+- Added movement-specific repetition estimates for squats, lunges, push-ups, wall push-ups, dumbbell bench press, curls, rows, shoulder press, lateral raises and triceps extensions.
+- Added explicit technical-metrics consent before MediaPipe analysis; camera preview remains available without analysis consent. Video frames and body landmarks are not uploaded or recorded.
+- Added camera access from compatible live-workout movements, manual confirmation before logging estimated reps, set-level rep history and undo support.
+- Added service-worker caching for the pinned MediaPipe SDK/WASM assets and Lite model after first successful download, plus pose-angle, visibility, rep-cycle and set-log unit tests.
+
 ## Delivered in v1.2.0
 
 - Renamed the featured preset to **Método Fluffo** and migrated exact legacy names in saved workouts, session history and scheduled labels.
@@ -30,7 +38,7 @@
 
 ## Known incomplete items
 
-- MediaPipe pose inference, skeleton overlay, form analysis and automatic repetition estimates.
+- Camera rep thresholds are heuristic estimates and have not yet been validated across a representative range of physical devices, camera angles, body types and movement speeds. Camera guidance is not a full form or safety assessment.
 - Reliable scheduled notifications while FORMA is fully closed (would require a push service/backend).
 - Full circuit-round engine and automatic warm-up/cool-down stages.
 - Detailed per-set repetition records, volume charts and personal-record detection.

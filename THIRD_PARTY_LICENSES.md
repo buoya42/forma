@@ -2,7 +2,7 @@
 
 ## Application runtime and build
 
-FORMA has **no third-party runtime or npm build dependencies**. The delivered application uses browser-standard APIs and native ECMAScript modules. There is no package lockfile because no package installation is needed.
+FORMA has no npm build dependency chain. The application uses browser-standard APIs and native ECMAScript modules; the optional camera-analysis feature lazily loads the pinned MediaPipe Tasks Vision browser runtime and model from their official distribution hosts, rather than through npm install.
 
 | Dependency | Version | License | Repository | Purpose | Internet required at runtime | User data transmitted |
 |---|---|---|---|---|---|---|
@@ -25,4 +25,4 @@ The workflow uses GitHub's built-in workflow token and requires no user-supplied
 
 IndexedDB, localStorage, Service Workers, Web App Manifest, Pointer Events, MediaDevices/getUserMedia, Notification, Vibration and Web Audio are browser APIs, not bundled libraries. Availability varies by browser and device.
 
-The project does not currently include MediaPipe Tasks Vision, Chart.js, Lucide or an external icon/font library. Icons are inline SVG paths maintained in this repository. Typeface selection uses system font stacks.
+The project does not bundle Chart.js, Lucide or an external icon/font library. Icons are inline SVG paths maintained in this repository. Typeface selection uses system font stacks. MediaPipe assets are an optional, lazily loaded feature and are not requested unless the user explicitly starts camera analysis.

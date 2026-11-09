@@ -18,7 +18,13 @@ FORMA is a local-first fitness web application designed for phones, tablets and 
 - Animated page transitions for swipe and button navigation, live-workout exercise changes, tactile control feedback and a reduced-motion setting.
 - IndexedDB persistence with a localStorage fallback, JSON export/import and local-data deletion.
 - PWA manifest, app icons and versioned service-worker asset caching.
-- Camera preview only after an explicit permission action. The current build does **not** estimate pose, assess form or count repetitions automatically.
+- Optional camera-based pose tracking with MediaPipe Pose Landmarker Lite: a live 33-point skeleton overlay and estimated rep counting for squats, lunges, push-ups, wall push-ups, dumbbell bench press, curls, rows, shoulder press, lateral raises and triceps extensions. Analysis starts only after camera permission and separate technical-metrics consent; video and body landmarks are processed on-device and are not recorded or uploaded. Estimated reps are added to a set only when the user confirms.
+
+## Camera pose assistance
+
+Open **Settings → Privacy → Camera assistance**, or choose **Cámara y repeticiones** during a supported live exercise. Grant camera permission, select the movement, review the technical-metrics notice and opt in before starting MediaPipe. The Lite model estimates landmarks locally, draws a skeleton overlay and counts full movement cycles. During a matching live exercise, manually confirm the estimated count to record it with that set; reps are never silently added to workout history.
+
+For tracking, keep the phone steady, use good lighting and position it according to the in-app camera-angle hint. Results are estimates, not a form or safety verdict. The first analysis activation downloads the pinned MediaPipe SDK/WASM files and Lite model and therefore requires internet access. The service worker caches successful downloads for later offline use, unless the browser evicts them. MediaPipe may send aggregate technical usage/performance metrics to Google after separate explicit consent; camera frames and body landmarks are not sent.
 
 ## Local development
 
@@ -59,6 +65,8 @@ Import the repository, open the Shell and run `npm run dev`. The project is stat
 - `src/engine.js` — session timing, progression and history primitives.
 - `src/storage.js` — IndexedDB/localStorage and import validation.
 - `src/gestures.js` — Pointer Events gesture recognition and swipe feedback.
+- `src/pose.js` — pose landmark angle analysis and movement-specific repetition state machines.
+- `src/pose-runtime.js` — lazy loading of the pinned MediaPipe browser runtime and Lite model.
 - `src/reminders.js` — local reminder time validation and due/upcoming reminder selection.
 - `src/styles.css` — responsive design system and themes.
 - `sw.js` — offline shell and asset caching.
@@ -71,7 +79,7 @@ Exercise information is educational and general. It is not medical advice, diagn
 
 ## Known limitations
 
-- Camera assistance is a private local preview only; MediaPipe pose inference, landmark overlays and automatic rep estimates are not included in this version.
+- Camera rep thresholds are heuristic estimates, not validated biomechanical measurements or professional form coaching. Automatic counting supports only the movements listed above; other exercises remain manual. Results vary with camera angle, occlusion, lighting, speed and individual technique.
 - Notifications are permission-gated but there is no reliable closed-app scheduled reminder mechanism. Background timer behavior depends on the browser and device.
 - Gesture handling covers horizontal navigation and workout navigation/instructions; not every platform-specific edge gesture or fully physics-based sheet motion is implemented.
 - Circuit/custom workout structures are stored as template metadata; the current live runner executes the ordered exercise list, not multi-round circuit automation.
