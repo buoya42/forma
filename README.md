@@ -4,6 +4,7 @@ FORMA is a local-first fitness web application designed for phones, tablets and 
 
 ## Features implemented
 
+- First-run welcome and guided setup for training profile, available equipment, units, language, appearance, animations and optional reminders. Existing installations keep their local data and skip the introduction.
 - Spanish and English interface labels; dark, light and system themes.
 - Responsive navigation and swipe gestures with visible button alternatives.
 - Exercise library with search, category/equipment/difficulty filters, favorites, custom exercises, edit, hide and restore.
