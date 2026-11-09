@@ -1,4 +1,4 @@
-const VERSION = '1.3.1';
+const VERSION = '1.4.0';
 const CACHE = `forma-static-${VERSION}`;
 const CORE = [
   './', './index.html', './manifest.webmanifest', './src/styles.css',
