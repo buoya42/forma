@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1 — 2026-11-09
+- Refined the welcome screen into a signature FORMA opening: editorial two-column hero, animated brand mark, atmospheric grid and glow, orbit rings, floating identity cards, staggered text reveal and subtle CTA light sweep.
+- Improved mobile composition while retaining reduced-motion and animation-off support.
+
 ## 1.3.0 — 2026-11-09
 - Added an animated first-run welcome and guided setup for profile, experience, preferred session length, units, equipment, language, theme and motion preferences.
 - Existing installations with saved data skip onboarding automatically; users can reopen setup from Settings without losing workouts or history.
